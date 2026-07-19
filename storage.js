@@ -1,0 +1,85 @@
+/**
+ * Storage Management - Save, serve, and auto-cleanup images
+ */
+
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import crypto from 'crypto';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+const STORAGE_DIR = path.join(__dirname, 'storage/images');
+const IMAGE_EXPIRY_MS = 180 * 1000; // 3 minutes
+
+// Ensure storage directory exists
+if (!fs.existsSync(STORAGE_DIR)) {
+    fs.mkdirSync(STORAGE_DIR, { recursive: true });
+}
+
+// In-memory store for image metadata
+const imageStore = new Map();
+
+export async function saveImage(buffer) {
+    const filename = crypto.randomBytes(8).toString('hex') + '.png';
+    const filepath = path.join(STORAGE_DIR, filename);
+
+    fs.writeFileSync(filepath, buffer);
+
+    imageStore.set(filename, {
+        filename,
+        createdAt: Date.now(),
+        expiresAt: Date.now() + IMAGE_EXPIRY_MS,
+    });
+
+    return filename;
+}
+
+export function getImageUrl(filename) {
+    const baseUrl = process.env.BASE_URL || 'http://localhost:3000';
+    return `${baseUrl}/images/${filename}`;
+}
+
+export function getImageMetadata(filename) {
+    return imageStore.get(filename) || null;
+}
+
+export function deleteImage(filename) {
+    const filepath = path.join(STORAGE_DIR, filename);
+    if (fs.existsSync(filepath)) {
+        fs.unlinkSync(filepath);
+    }
+    imageStore.delete(filename);
+}
+
+export function startCleanup() {
+    setInterval(() => {
+        const now = Date.now();
+        const toDelete = [];
+
+        for (const [filename, metadata] of imageStore.entries()) {
+            if (now > metadata.expiresAt) {
+                toDelete.push(filename);
+            }
+        }
+
+        for (const filename of toDelete) {
+            deleteImage(filename);
+            console.log(`[CLEANUP] Deleted: ${filename}`);
+        }
+
+        if (toDelete.length > 0) {
+            console.log(`[CLEANUP] Removed ${toDelete.length} expired images`);
+        }
+    }, 60000); // Check every minute
+}
+
+export function cleanupOnShutdown() {
+    for (const filename of imageStore.keys()) {
+        deleteImage(filename);
+    }
+    console.log('[CLEANUP] All images deleted on shutdown');
+}
+
+

@@ -1,0 +1,52 @@
+/**
+ * DEV ZIKKY Quote API
+ * Telegram-style quote image generator
+ */
+
+import express from 'express';
+import cors from 'cors';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import fs from 'fs';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+const app = express();
+const PORT = process.env.PORT || 3000;
+
+// Import routes and utils
+import quoteRouter from './quote.js';
+import { startCleanup } from './storage.js';
+
+// Middleware
+app.use(cors());
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+
+// Static files
+app.use('/images', express.static(path.join(__dirname, 'storage/images')));
+app.use('/fonts', express.static(__dirname));
+
+// Routes
+app.use('/api/quote', quoteRouter);
+
+// Landing page
+app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, 'index.html'));
+});
+
+// Health check
+app.get('/health', (req, res) => {
+    res.json({ status: 'ok', timestamp: new Date().toISOString() });
+});
+
+// Start cleanup
+startCleanup();
+
+app.listen(PORT, () => {
+    console.log(`🚀 Quote API running on port ${PORT}`);
+    console.log(`📍 http://localhost:${PORT}`);
+});
+
+
