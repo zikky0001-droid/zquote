@@ -4,6 +4,7 @@
  */
 
 import express from 'express';
+import axios from 'axios';
 import { generateQuote } from './renderer.js';
 import { saveImage, getImageUrl } from './storage.js';
 
@@ -11,7 +12,7 @@ const router = express.Router();
 
 router.post('/', async (req, res) => {
     try {
-        const { text, username, avatar } = req.body;
+        let { text, username, avatar } = req.body;
 
         // Validate required fields
         if (!text || !username) {
@@ -29,6 +30,21 @@ router.post('/', async (req, res) => {
             });
         }
 
+        // ✅ Validate avatar URL if provided
+        if (avatar && avatar !== 'default' && avatar !== '') {
+            try {
+                await axios.head(avatar, { timeout: 5000 });
+            } catch {
+                console.log('[QUOTE] Avatar URL invalid, using default');
+                avatar = 'default';
+            }
+        }
+
+        // If no avatar or invalid, use default
+        if (!avatar || avatar === '') {
+            avatar = 'default';
+        }
+
         // Generate the quote image
         const imageBuffer = await generateQuote({
             text,
@@ -41,11 +57,12 @@ router.post('/', async (req, res) => {
         const filename = await saveImage(imageBuffer);
 
         // Return response
+        const baseUrl = process.env.BASE_URL || `http://localhost:${process.env.PORT || 3000}`;
         res.json({
             success: true,
             expiresIn: 180,
-            image: getImageUrl(filename),
-            preview: getImageUrl(filename),
+            image: `${baseUrl}/images/${filename}`,
+            preview: `${baseUrl}/images/${filename}`,
             filename
         });
 
@@ -74,5 +91,4 @@ function getUsernameColor(username) {
 }
 
 export default router;
-
 

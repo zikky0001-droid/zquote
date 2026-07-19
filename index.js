@@ -19,34 +19,61 @@ const PORT = process.env.PORT || 3000;
 import quoteRouter from './quote.js';
 import { startCleanup } from './storage.js';
 
-// Middleware
+// ================================
+// MIDDLEWARE
+// ================================
 app.use(cors());
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-// Static files
-app.use('/images', express.static(path.join(__dirname, 'storage/images')));
-app.use('/fonts', express.static(__dirname));
+// ================================
+// STATIC FILES WITH HEADERS
+// ================================
+// Images (with CORS and cache)
+app.use('/images', (req, res, next) => {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Cache-Control', 'public, max-age=180');
+    next();
+}, express.static(path.join(__dirname, 'storage/images')));
 
-// Routes
+// Fonts (if needed for direct access)
+app.use('/fonts', express.static(path.join(__dirname, 'fonts')));
+
+// ================================
+// ROUTES
+// ================================
 app.use('/api/quote', quoteRouter);
 
-// Landing page
+// ================================
+// LANDING PAGE
+// ================================
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'index.html'));
 });
 
-// Health check
+// ================================
+// HEALTH CHECK
+// ================================
 app.get('/health', (req, res) => {
-    res.json({ status: 'ok', timestamp: new Date().toISOString() });
+    res.json({ 
+        status: 'ok', 
+        timestamp: new Date().toISOString(),
+        baseUrl: process.env.BASE_URL || `http://localhost:${PORT}`
+    });
 });
 
-// Start cleanup
+// ================================
+// START CLEANUP
+// ================================
 startCleanup();
 
+// ================================
+// START SERVER
+// ================================
 app.listen(PORT, () => {
     console.log(`🚀 Quote API running on port ${PORT}`);
     console.log(`📍 http://localhost:${PORT}`);
+    console.log(`🔗 BASE_URL: ${process.env.BASE_URL || 'http://localhost:' + PORT}`);
 });
 
 
