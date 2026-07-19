@@ -2,11 +2,13 @@ services:
   - type: web
     name: zquote
     runtime: node
+    repo: https://github.com/zikky0001-droid/zquote
     plan: free
     buildCommand: npm install
-    startCommand: npm start
+    startCommand: node index.js
     envVars:
       - key: NODE_ENV
         value: production
       - key: BASE_URL
         sync: false
+        
