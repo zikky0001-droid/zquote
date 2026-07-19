@@ -1,7 +1,6 @@
 /**
  * Quote Renderer - SVG to PNG
- * Uses Satori + Resvg for high-quality rendering
- * Loads ALL available fonts from /fonts folder
+ * Uses Satori + Resvg with Twemoji SVG emoji replacement
  */
 
 import fs from 'fs';
@@ -9,6 +8,8 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import satori from 'satori';
 import { Resvg } from '@resvg/resvg-js';
+import twemoji from 'twemoji';
+import emojiRegex from 'emoji-regex';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -19,18 +20,24 @@ const __dirname = path.dirname(__filename);
 const FONTS_DIR = path.join(__dirname, 'fonts');
 
 // ================================
-// LOAD ALL FONTS FROM FONTS FOLDER
+// EMOJI CACHE
+// ================================
+const emojiCache = new Map();
+const TWEMOJI_BASE = 'https://cdn.jsdelivr.net/npm/twemoji@14.1.2/svg/';
+
+// ================================
+// LOAD FONTS
 // ================================
 function loadAllFonts() {
-    const fontMap = new Map();
+    const fonts = [];
     
     if (!fs.existsSync(FONTS_DIR)) {
-        console.warn('[FONTS] Fonts directory not found:', FONTS_DIR);
-        return fontMap;
+        console.warn('[FONTS] Fonts directory not found');
+        return fonts;
     }
 
     const fontFiles = fs.readdirSync(FONTS_DIR).filter(file => 
-        file.endsWith('.ttf') || file.endsWith('.otf') || file.endsWith('.ttc')
+        file.endsWith('.ttf') || file.endsWith('.otf')
     );
 
     console.log(`[FONTS] Found ${fontFiles.length} font files`);
@@ -40,147 +47,186 @@ function loadAllFonts() {
             const filepath = path.join(FONTS_DIR, file);
             const data = fs.readFileSync(filepath);
             
-            // Parse font name from filename
-            let name = file.replace(/\.(ttf|otf|ttc)$/, '');
+            let name = 'Roboto';
             let weight = 400;
             let style = 'normal';
 
-            // Detect weight from filename
-            if (name.includes('Black')) weight = 900;
-            else if (name.includes('ExtraBold')) weight = 800;
-            else if (name.includes('Bold')) weight = 700;
-            else if (name.includes('SemiBold')) weight = 600;
-            else if (name.includes('Medium')) weight = 500;
-            else if (name.includes('Regular')) weight = 400;
-            else if (name.includes('Light')) weight = 300;
-            else if (name.includes('ExtraLight')) weight = 200;
-            else if (name.includes('Thin')) weight = 100;
+            if (file.includes('Black')) weight = 900;
+            else if (file.includes('ExtraBold')) weight = 800;
+            else if (file.includes('Bold')) weight = 700;
+            else if (file.includes('SemiBold')) weight = 600;
+            else if (file.includes('Medium')) weight = 500;
+            else if (file.includes('Light')) weight = 300;
+            else if (file.includes('ExtraLight')) weight = 200;
+            else if (file.includes('Thin')) weight = 100;
 
-            // Detect style
-            if (name.includes('Italic')) style = 'italic';
+            if (file.includes('Italic')) style = 'italic';
+            if (file.includes('Condensed')) name = 'Roboto Condensed';
+            if (file.includes('SemiCondensed')) name = 'Roboto SemiCondensed';
+            if (file.includes('NotoSans')) name = 'Noto Sans';
+            if (file.includes('NotoColorEmoji')) name = 'Noto Color Emoji';
 
-            // Clean up name for Satori
-            let fontName = 'Roboto';
-            if (name.includes('Condensed')) fontName = 'Roboto Condensed';
-            else if (name.includes('SemiCondensed')) fontName = 'Roboto SemiCondensed';
-
-            fontMap.set(file, {
-                name: fontName,
+            fonts.push({
+                name: name,
                 data: data,
                 weight: weight,
                 style: style,
                 file: file
             });
-
-            console.log(`[FONTS] Loaded: ${file} (${fontName}, weight: ${weight}, style: ${style})`);
         } catch (error) {
             console.error(`[FONTS] Failed to load: ${file}`, error.message);
-        }
-    }
-
-    return fontMap;
-}
-
-// ================================
-// LOAD SPECIFIC FONTS (Priority)
-// ================================
-function loadSpecificFonts() {
-    const fonts = [];
-
-    // Priority order: Regular, Bold, then everything else
-    const priorityFiles = [
-        'Roboto-Regular.ttf',
-        'Roboto-Bold.ttf',
-        'NotoSans-Regular.ttf',
-        'NotoColorEmoji-Regular.ttf'
-    ];
-
-    // Load priority fonts first
-    for (const file of priorityFiles) {
-        const filepath = path.join(FONTS_DIR, file);
-        if (fs.existsSync(filepath)) {
-            try {
-                const data = fs.readFileSync(filepath);
-                let name = file.replace(/\.(ttf|otf|ttc)$/, '');
-                let weight = 400;
-                let style = 'normal';
-
-                if (name.includes('Bold')) weight = 700;
-                if (name.includes('Italic')) style = 'italic';
-
-                // Special handling
-                if (file.includes('NotoSans')) name = 'Noto Sans';
-                if (file.includes('NotoColorEmoji')) name = 'Noto Color Emoji';
-
-                fonts.push({
-                    name: name,
-                    data: data,
-                    weight: weight,
-                    style: style,
-                });
-                console.log(`[FONTS] ✓ Priority loaded: ${file}`);
-            } catch (error) {
-                console.error(`[FONTS] Failed to load priority font: ${file}`, error.message);
-            }
-        }
-    }
-
-    // Load ALL other fonts from the folder
-    if (fs.existsSync(FONTS_DIR)) {
-        const allFiles = fs.readdirSync(FONTS_DIR).filter(file => 
-            (file.endsWith('.ttf') || file.endsWith('.otf')) && 
-            !priorityFiles.includes(file) &&
-            !file.includes('Noto')
-        );
-
-        for (const file of allFiles) {
-            try {
-                const filepath = path.join(FONTS_DIR, file);
-                const data = fs.readFileSync(filepath);
-                let name = 'Roboto';
-                let weight = 400;
-                let style = 'normal';
-
-                if (file.includes('Black')) weight = 900;
-                else if (file.includes('ExtraBold')) weight = 800;
-                else if (file.includes('Bold')) weight = 700;
-                else if (file.includes('SemiBold')) weight = 600;
-                else if (file.includes('Medium')) weight = 500;
-                else if (file.includes('Light')) weight = 300;
-                else if (file.includes('ExtraLight')) weight = 200;
-                else if (file.includes('Thin')) weight = 100;
-
-                if (file.includes('Italic')) style = 'italic';
-                if (file.includes('Condensed')) name = 'Roboto Condensed';
-                if (file.includes('SemiCondensed')) name = 'Roboto SemiCondensed';
-
-                fonts.push({
-                    name: name,
-                    data: data,
-                    weight: weight,
-                    style: style,
-                });
-                console.log(`[FONTS] ✓ Loaded: ${file}`);
-            } catch (error) {
-                console.error(`[FONTS] Failed to load: ${file}`, error.message);
-            }
         }
     }
 
     return fonts;
 }
 
-// ================================
-// LOAD ALL FONTS
-// ================================
-const allFonts = loadSpecificFonts();
-
+const allFonts = loadAllFonts();
 console.log(`[FONTS] Total fonts loaded: ${allFonts.length}`);
+
+// ================================
+// EMOJI TO SVG CONVERTER
+// ================================
+function getEmojiSVG(emoji) {
+    // Check cache
+    if (emojiCache.has(emoji)) {
+        return emojiCache.get(emoji);
+    }
+
+    try {
+        // Get Twemoji SVG URL
+        const codePoint = twemoji.convert.toCodePoint(emoji);
+        const svgUrl = `${TWEMOJI_BASE}${codePoint}.svg`;
+        
+        // Store in cache
+        emojiCache.set(emoji, svgUrl);
+        return svgUrl;
+    } catch (error) {
+        console.warn(`[EMOJI] Failed to get SVG for: ${emoji}`, error.message);
+        return null;
+    }
+}
+
+function parseEmojis(text) {
+    const regex = emojiRegex();
+    const parts = [];
+    let lastIndex = 0;
+    let match;
+
+    while ((match = regex.exec(text)) !== null) {
+        // Add text before emoji
+        if (match.index > lastIndex) {
+            parts.push({
+                type: 'text',
+                value: text.slice(lastIndex, match.index)
+            });
+        }
+
+        // Add emoji as image
+        const svgUrl = getEmojiSVG(match[0]);
+        if (svgUrl) {
+            parts.push({
+                type: 'emoji',
+                value: match[0],
+                svg: svgUrl
+            });
+        } else {
+            // Fallback: render as text
+            parts.push({
+                type: 'text',
+                value: match[0]
+            });
+        }
+
+        lastIndex = regex.lastIndex;
+    }
+
+    // Add remaining text
+    if (lastIndex < text.length) {
+        parts.push({
+            type: 'text',
+            value: text.slice(lastIndex)
+        });
+    }
+
+    return parts;
+}
+
+function buildTextNode(parts, fontSize, color) {
+    if (parts.length === 1 && parts[0].type === 'text') {
+        return {
+            type: 'div',
+            props: {
+                style: {
+                    display: 'flex',
+                    fontSize: fontSize,
+                    lineHeight: '1.3',
+                    color: color,
+                    fontWeight: 400,
+                    wordBreak: 'break-word',
+                    fontFamily: '"Roboto", "Noto Sans", sans-serif',
+                },
+                children: parts[0].value,
+            },
+        };
+    }
+
+    // Mixed text and emojis
+    return {
+        type: 'div',
+        props: {
+            style: {
+                display: 'flex',
+                flexWrap: 'wrap',
+                alignItems: 'center',
+                fontSize: fontSize,
+                lineHeight: '1.3',
+                color: color,
+                fontWeight: 400,
+                fontFamily: '"Roboto", "Noto Sans", sans-serif',
+                gap: '2px',
+            },
+            children: parts.map((part, index) => {
+                if (part.type === 'text') {
+                    return {
+                        type: 'span',
+                        props: {
+                            style: {
+                                display: 'inline',
+                                fontSize: fontSize,
+                                color: color,
+                            },
+                            children: part.value,
+                        },
+                    };
+                } else {
+                    // Emoji as image
+                    return {
+                        type: 'img',
+                        props: {
+                            src: part.svg,
+                            style: {
+                                display: 'inline-block',
+                                width: `${fontSize * 1.1}px`,
+                                height: `${fontSize * 1.1}px`,
+                                verticalAlign: 'middle',
+                            },
+                        },
+                    };
+                }
+            }),
+        },
+    };
+}
 
 // ================================
 // GENERATE QUOTE
 // ================================
 export async function generateQuote({ text, username, avatar, color }) {
+    // Parse emojis in the message
+    const textParts = parseEmojis(text);
+    const textNode = buildTextNode(textParts, 'auto', '#FFFFFF');
+
     // Build the SVG using Satori
     const svg = await satori(
         {
@@ -192,7 +238,6 @@ export async function generateQuote({ text, username, avatar, color }) {
                     gap: '18px',
                     padding: '20px',
                     background: 'transparent',
-                    fontFamily: '"Roboto", "Noto Sans", "Noto Color Emoji", sans-serif',
                 },
                 children: [
                     // ================================
@@ -237,6 +282,7 @@ export async function generateQuote({ text, username, avatar, color }) {
                                             fontSize: '28px',
                                             fontWeight: 'bold',
                                             color: '#FFFFFF',
+                                            fontFamily: '"Noto Sans", "Roboto", sans-serif',
                                         },
                                         children: username.charAt(0).toUpperCase(),
                                     },
@@ -260,7 +306,6 @@ export async function generateQuote({ text, username, avatar, color }) {
                                 maxWidth: '470px',
                                 minWidth: '200px',
                                 boxShadow: '0 8px 30px rgba(0,0,0,0.35)',
-                                fontFamily: '"Roboto", "Noto Sans", "Noto Color Emoji", sans-serif',
                             },
                             children: [
                                 // Tail
@@ -289,27 +334,13 @@ export async function generateQuote({ text, username, avatar, color }) {
                                             fontWeight: 700,
                                             color: color,
                                             marginBottom: '8px',
-                                            fontFamily: '"Roboto", "Noto Sans", sans-serif',
+                                            fontFamily: '"Noto Sans", "Roboto", sans-serif',
                                         },
                                         children: username,
                                     },
                                 },
-                                // Message text
-                                {
-                                    type: 'div',
-                                    props: {
-                                        style: {
-                                            display: 'flex',
-                                            fontSize: 'auto',
-                                            lineHeight: '1.3',
-                                            color: '#FFFFFF',
-                                            fontWeight: 400,
-                                            wordBreak: 'break-word',
-                                            fontFamily: '"Roboto", "Noto Sans", "Noto Color Emoji", sans-serif',
-                                        },
-                                        children: text,
-                                    },
-                                },
+                                // Message text with emoji support
+                                textNode,
                             ],
                         },
                     },
@@ -334,7 +365,6 @@ export async function generateQuote({ text, username, avatar, color }) {
         font: {
             loadSystemFonts: false,
             fontFiles: (() => {
-                // Collect all font files from fonts directory
                 if (!fs.existsSync(FONTS_DIR)) return [];
                 return fs.readdirSync(FONTS_DIR)
                     .filter(file => file.endsWith('.ttf') || file.endsWith('.otf'))
@@ -346,6 +376,5 @@ export async function generateQuote({ text, username, avatar, color }) {
     const pngData = resvg.render();
     return pngData.asPng();
 }
-
 
 
