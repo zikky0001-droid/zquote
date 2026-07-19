@@ -1,6 +1,7 @@
 /**
  * Quote Renderer - SVG to PNG
- * Uses Satori + Resvg with Base64-encoded Twemoji SVGs
+ * Production-ready with Twemoji support
+ * Emojis are pre-cached for fast rendering
  */
 
 import fs from 'fs';
@@ -16,14 +17,16 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 // ================================
-// FONTS DIRECTORY
+// CONSTANTS
 // ================================
 const FONTS_DIR = path.join(__dirname, 'fonts');
+const EMOJI_CACHE_DIR = path.join(__dirname, 'emoji-cache');
+const TWEMOJI_CDN = 'https://cdn.jsdelivr.net/gh/jdecked/twemoji/assets/svg';
 
-// ================================
-// EMOJI CACHE
-// ================================
-const emojiCache = new Map();
+// Create directories
+if (!fs.existsSync(EMOJI_CACHE_DIR)) {
+    fs.mkdirSync(EMOJI_CACHE_DIR, { recursive: true });
+}
 
 // ================================
 // LOAD FONTS
@@ -39,8 +42,6 @@ function loadAllFonts() {
     const fontFiles = fs.readdirSync(FONTS_DIR).filter(file => 
         file.endsWith('.ttf') || file.endsWith('.otf')
     );
-
-    console.log(`[FONTS] Found ${fontFiles.length} font files`);
 
     for (const file of fontFiles) {
         try {
@@ -71,7 +72,6 @@ function loadAllFonts() {
                 data: data,
                 weight: weight,
                 style: style,
-                file: file
             });
         } catch (error) {
             console.error(`[FONTS] Failed to load: ${file}`, error.message);
@@ -85,33 +85,45 @@ const allFonts = loadAllFonts();
 console.log(`[FONTS] Total fonts loaded: ${allFonts.length}`);
 
 // ================================
-// EMOJI TO BASE64 SVG
+// EMOJI CACHE
 // ================================
+const memoryCache = new Map();
+
 async function getEmojiBase64SVG(emoji) {
-    // Check cache
-    if (emojiCache.has(emoji)) {
-        return emojiCache.get(emoji);
+    // Check memory cache
+    if (memoryCache.has(emoji)) {
+        return memoryCache.get(emoji);
     }
 
-    try {
-        // Get Twemoji SVG URL
-        const codePoint = twemoji.convert.toCodePoint(emoji);
-        const svgUrl = `https://cdn.jsdelivr.net/npm/twemoji@14.1.2/svg/${codePoint}.svg`;
+    // Get code point (keep -fe0f as-is)
+    const codePoint = twemoji.convert.toCodePoint(emoji);
+    const filename = `${codePoint}.svg`;
+    const filepath = path.join(EMOJI_CACHE_DIR, filename);
 
-        // Download SVG
+    // Check disk cache
+    if (fs.existsSync(filepath)) {
+        const svgData = fs.readFileSync(filepath, 'utf8');
+        const base64 = Buffer.from(svgData).toString('base64');
+        const dataUri = `data:image/svg+xml;base64,${base64}`;
+        memoryCache.set(emoji, dataUri);
+        return dataUri;
+    }
+
+    // Download from CDN
+    try {
+        const svgUrl = `${TWEMOJI_CDN}/${codePoint}.svg`;
         const response = await axios.get(svgUrl, {
             responseType: 'text',
             timeout: 5000
         });
 
         const svgData = response.data;
+        fs.writeFileSync(filepath, svgData, 'utf8');
         
-        // Convert to Base64
         const base64 = Buffer.from(svgData).toString('base64');
         const dataUri = `data:image/svg+xml;base64,${base64}`;
         
-        // Store in cache
-        emojiCache.set(emoji, dataUri);
+        memoryCache.set(emoji, dataUri);
         return dataUri;
     } catch (error) {
         console.warn(`[EMOJI] Failed to get SVG for: ${emoji}`, error.message);
@@ -119,6 +131,9 @@ async function getEmojiBase64SVG(emoji) {
     }
 }
 
+// ================================
+// PARSE EMOJIS
+// ================================
 function parseEmojis(text) {
     const regex = emojiRegex();
     const parts = [];
@@ -126,24 +141,19 @@ function parseEmojis(text) {
     let match;
 
     while ((match = regex.exec(text)) !== null) {
-        // Add text before emoji
         if (match.index > lastIndex) {
             parts.push({
                 type: 'text',
                 value: text.slice(lastIndex, match.index)
             });
         }
-
-        // Add emoji as image (will be resolved later)
         parts.push({
             type: 'emoji',
             value: match[0],
         });
-
         lastIndex = regex.lastIndex;
     }
 
-    // Add remaining text
     if (lastIndex < text.length) {
         parts.push({
             type: 'text',
@@ -154,85 +164,104 @@ function parseEmojis(text) {
     return parts;
 }
 
-async function buildTextNode(parts, fontSize, color) {
-    // Resolve emojis to Base64 SVGs
-    const resolvedParts = await Promise.all(parts.map(async (part) => {
+// ================================
+// BUILD MESSAGE NODE
+// ================================
+async function buildMessageNode(text, fontSize = 28) {
+    const parts = parseEmojis(text);
+    const children = [];
+    let textBuffer = '';
+
+    // Group consecutive text fragments together
+    for (const part of parts) {
         if (part.type === 'text') {
-            return part;
+            textBuffer += part.value;
         } else {
+            // Flush text buffer
+            if (textBuffer) {
+                children.push({
+                    type: 'div',
+                    props: {
+                        style: {
+                            display: 'flex',
+                            fontSize: fontSize,
+                            color: '#FFFFFF',
+                            fontWeight: 400,
+                            fontFamily: '"Roboto", "Noto Sans", sans-serif',
+                        },
+                        children: textBuffer,
+                    },
+                });
+                textBuffer = '';
+            }
+
+            // Add emoji
             const svg = await getEmojiBase64SVG(part.value);
-            return {
-                ...part,
-                svg: svg
-            };
+            if (svg) {
+                children.push({
+                    type: 'img',
+                    props: {
+                        src: svg,
+                        style: {
+                            display: 'flex',
+                            width: fontSize + 4,
+                            height: fontSize + 4,
+                            flexShrink: 0,
+                        },
+                    },
+                });
+            } else {
+                // Fallback: render emoji as text
+                children.push({
+                    type: 'div',
+                    props: {
+                        style: {
+                            display: 'flex',
+                            fontSize: fontSize,
+                            color: '#FFFFFF',
+                            fontWeight: 400,
+                            fontFamily: '"Roboto", "Noto Sans", sans-serif',
+                        },
+                        children: part.value,
+                    },
+                });
+            }
         }
-    }));
+    }
 
-    // Filter out emojis that failed to load
-    const validParts = resolvedParts.filter(p => p.type === 'text' || p.svg);
-
-    if (validParts.length === 1 && validParts[0].type === 'text') {
-        return {
+    // Flush remaining text
+    if (textBuffer) {
+        children.push({
             type: 'div',
             props: {
                 style: {
                     display: 'flex',
                     fontSize: fontSize,
-                    lineHeight: '1.3',
-                    color: color,
+                    color: '#FFFFFF',
                     fontWeight: 400,
-                    wordBreak: 'break-word',
                     fontFamily: '"Roboto", "Noto Sans", sans-serif',
                 },
-                children: validParts[0].value,
+                children: textBuffer,
             },
-        };
+        });
     }
 
-    // Mixed text and emojis
     return {
         type: 'div',
         props: {
             style: {
                 display: 'flex',
+                flexDirection: 'row',
                 flexWrap: 'wrap',
                 alignItems: 'center',
-                fontSize: fontSize,
-                lineHeight: '1.3',
-                color: color,
-                fontWeight: 400,
-                fontFamily: '"Roboto", "Noto Sans", sans-serif',
                 gap: '2px',
+                fontSize: fontSize,
+                color: '#FFFFFF',
+                fontWeight: 400,
+                lineHeight: 1.3,
+                fontFamily: '"Roboto", "Noto Sans", sans-serif',
             },
-            children: validParts.map((part) => {
-                if (part.type === 'text') {
-                    return {
-                        type: 'span',
-                        props: {
-                            style: {
-                                display: 'inline',
-                                fontSize: fontSize,
-                                color: color,
-                            },
-                            children: part.value,
-                        },
-                    };
-                } else {
-                    // Emoji as Base64 image
-                    return {
-                        type: 'img',
-                        props: {
-                            src: part.svg,
-                            style: {
-                                display: 'inline-block',
-                                width: `${fontSize * 1.1}px`,
-                                height: `${fontSize * 1.1}px`,
-                                verticalAlign: 'middle',
-                            },
-                        },
-                    };
-                }
-            }),
+            children: children,
         },
     };
 }
@@ -241,11 +270,14 @@ async function buildTextNode(parts, fontSize, color) {
 // GENERATE QUOTE
 // ================================
 export async function generateQuote({ text, username, avatar, color }) {
-    // Parse emojis in the message
-    const textParts = parseEmojis(text);
-    const textNode = await buildTextNode(textParts, 'auto', '#FFFFFF');
+    // Calculate height based on text length (rough estimate)
+    const textLength = text.length;
+    const baseHeight = 150;
+    const extraHeight = Math.floor(textLength / 15) * 28;
+    const height = Math.min(Math.max(baseHeight + extraHeight, 150), 500);
 
-    // Build the SVG using Satori
+    const messageNode = await buildMessageNode(text, 28);
+
     const svg = await satori(
         {
             type: 'div',
@@ -258,7 +290,9 @@ export async function generateQuote({ text, username, avatar, color }) {
                     background: 'transparent',
                 },
                 children: [
-                    // Avatar
+                    // ================================
+                    // AVATAR
+                    // ================================
                     {
                         type: 'div',
                         props: {
@@ -296,7 +330,7 @@ export async function generateQuote({ text, username, avatar, color }) {
                                             height: '100%',
                                             background: '#3A3A3E',
                                             fontSize: '28px',
-                                            fontWeight: 'bold',
+                                            fontWeight: 700,
                                             color: '#FFFFFF',
                                             fontFamily: '"Noto Sans", "Roboto", sans-serif',
                                         },
@@ -306,7 +340,9 @@ export async function generateQuote({ text, username, avatar, color }) {
                             ],
                         },
                     },
-                    // Bubble
+                    // ================================
+                    // BUBBLE
+                    // ================================
                     {
                         type: 'div',
                         props: {
@@ -347,14 +383,14 @@ export async function generateQuote({ text, username, avatar, color }) {
                                             fontSize: '21px',
                                             fontWeight: 700,
                                             color: color,
-                                            marginBottom: '8px',
+                                            marginBottom: '12px',
                                             fontFamily: '"Noto Sans", "Roboto", sans-serif',
                                         },
                                         children: username,
                                     },
                                 },
-                                // Message text with emoji support
-                                textNode,
+                                // Message
+                                messageNode,
                             ],
                         },
                     },
@@ -363,12 +399,12 @@ export async function generateQuote({ text, username, avatar, color }) {
         },
         {
             width: 600,
-            height: 200,
+            height: height,
             fonts: allFonts,
         }
     );
 
-    // Render SVG to PNG
+    // Render to PNG
     const resvg = new Resvg(svg, {
         fitTo: {
             mode: 'width',
@@ -388,4 +424,3 @@ export async function generateQuote({ text, username, avatar, color }) {
     const pngData = resvg.render();
     return pngData.asPng();
 }
-
