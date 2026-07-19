@@ -5,138 +5,732 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>DEV ZIKKY Quote API</title>
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; font-family: system-ui, -apple-system, sans-serif; }
-        body { background: #111827; display: flex; justify-content: center; align-items: center; min-height: 100vh; color: white; padding: 20px; }
-        .card { width: 900px; max-width: 100%; background: #1b1d22; border-radius: 24px; padding: 40px; box-shadow: 0 20px 50px rgba(0,0,0,0.45); }
-        h1 { font-size: 45px; margin-bottom: 10px; background: linear-gradient(135deg, #FF8A65, #FFB74D); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-        p { color: #bfbfbf; line-height: 1.8; }
-        .demo { margin-top: 40px; background: #14161a; border-radius: 16px; padding: 30px; }
-        .quote-preview { display: flex; align-items: flex-end; gap: 18px; }
-        .avatar-preview { width: 72px; height: 72px; border-radius: 50%; overflow: hidden; flex: none; box-shadow: 0 0 0 4px rgba(255,255,255,0.08); background: #3A3A3E; display: flex; align-items: center; justify-content: center; font-size: 28px; font-weight: bold; color: #fff; }
-        .bubble-preview { background: #2b2d31; padding: 22px 28px; border-radius: 32px; position: relative; max-width: 470px; box-shadow: 0 8px 30px rgba(0,0,0,0.35); }
-        .bubble-preview::before { content: ""; position: absolute; left: -18px; bottom: 14px; width: 28px; height: 28px; background: #2b2d31; clip-path: path("M28 0C16 8 8 16 0 28C12 24 20 22 28 18Z"); }
-        .name-preview { font-size: 21px; font-weight: 700; color: #4FC3F7; margin-bottom: 8px; }
-        .text-preview { font-size: 31px; line-height: 1.3; color: #fff; }
-        .form-group { margin-top: 30px; display: flex; flex-direction: column; gap: 16px; }
-        .form-row { display: flex; gap: 16px; flex-wrap: wrap; }
-        .form-row input, .form-row textarea { flex: 1; min-width: 200px; padding: 12px 16px; border: 1px solid #2d323b; border-radius: 10px; background: #1b1d22; color: white; font-size: 16px; transition: border-color 0.3s; }
-        .form-row input:focus, .form-row textarea:focus { outline: none; border-color: #4FC3F7; }
-        .form-row textarea { min-height: 60px; resize: vertical; font-family: inherit; }
-        .btn-generate { padding: 14px 40px; background: linear-gradient(135deg, #4FC3F7, #81C784); border: none; border-radius: 12px; color: #fff; font-size: 18px; font-weight: 600; cursor: pointer; transition: transform 0.2s, box-shadow 0.2s; }
-        .btn-generate:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(79,195,247,0.3); }
-        .btn-generate:active { transform: scale(0.97); }
-        .result { margin-top: 20px; display: none; text-align: center; }
-        .result img { max-width: 100%; border-radius: 12px; box-shadow: 0 8px 30px rgba(0,0,0,0.5); }
-        .api-section { margin-top: 30px; padding-top: 20px; border-top: 1px solid #2d323b; }
-        .api-section code { background: #2d323b; padding: 3px 10px; border-radius: 6px; color: #4FC3F7; font-size: 14px; }
-        .footer { margin-top: 30px; display: flex; justify-content: space-between; color: #888; font-size: 14px; }
-        .footer a { color: #4FC3F7; text-decoration: none; }
-        .status { margin-top: 10px; font-size: 14px; color: #81C784; display: none; }
-        .loading { display: none; margin-top: 20px; text-align: center; color: #888; }
-        .loading::after { content: '...'; animation: dots 1.5s steps(4, end) infinite; }
-        @keyframes dots { 0% { content: ''; } 25% { content: '.'; } 50% { content: '..'; } 75% { content: '...'; } }
+        /* ================================
+           RESET & BASE
+        ================================ */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: #0a0a0f;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            padding: 20px;
+            color: #fff;
+        }
+
+        /* ================================
+           CARD CONTAINER
+        ================================ */
+        .container {
+            width: 100%;
+            max-width: 820px;
+            background: linear-gradient(145deg, #14161c, #1a1d24);
+            border-radius: 28px;
+            padding: 48px 40px;
+            box-shadow: 0 30px 60px rgba(0, 0, 0, 0.6);
+            border: 1px solid rgba(255, 255, 255, 0.04);
+        }
+
+        /* ================================
+           HEADER
+        ================================ */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 32px;
+            flex-wrap: wrap;
+            gap: 16px;
+        }
+
+        .header-left h1 {
+            font-size: 38px;
+            font-weight: 800;
+            background: linear-gradient(135deg, #FF8A65, #FFB74D);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            letter-spacing: -0.5px;
+        }
+
+        .header-left p {
+            color: #8a8f9a;
+            font-size: 15px;
+            margin-top: 4px;
+            font-weight: 400;
+        }
+
+        .badge {
+            background: rgba(79, 195, 247, 0.12);
+            border: 1px solid rgba(79, 195, 247, 0.2);
+            padding: 6px 18px;
+            border-radius: 40px;
+            font-size: 13px;
+            color: #4FC3F7;
+            font-weight: 500;
+            white-space: nowrap;
+        }
+
+        /* ================================
+           QUOTE PREVIEW
+        ================================ */
+        .preview-section {
+            background: #0f1117;
+            border-radius: 18px;
+            padding: 30px 28px;
+            margin-bottom: 30px;
+            border: 1px solid rgba(255, 255, 255, 0.04);
+        }
+
+        .preview-label {
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            color: #5a5f6e;
+            margin-bottom: 18px;
+            font-weight: 600;
+        }
+
+        .quote-preview {
+            display: flex;
+            align-items: flex-end;
+            gap: 18px;
+        }
+
+        .avatar-preview {
+            width: 72px;
+            height: 72px;
+            border-radius: 50%;
+            overflow: hidden;
+            flex: none;
+            box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.06);
+            background: #2a2d36;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 28px;
+            font-weight: 700;
+            color: #fff;
+            transition: all 0.3s ease;
+        }
+
+        .avatar-preview img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .bubble-preview {
+            background: #24262e;
+            padding: 20px 26px;
+            border-radius: 28px;
+            position: relative;
+            max-width: 470px;
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.3);
+        }
+
+        .bubble-preview::before {
+            content: "";
+            position: absolute;
+            left: -16px;
+            bottom: 14px;
+            width: 26px;
+            height: 26px;
+            background: #24262e;
+            clip-path: path("M26 0C14 7 7 14 0 26C11 22 18 20 26 16Z");
+        }
+
+        .name-preview {
+            font-size: 20px;
+            font-weight: 700;
+            color: #4FC3F7;
+            margin-bottom: 6px;
+        }
+
+        .text-preview {
+            font-size: 28px;
+            line-height: 1.3;
+            color: #f0f0f0;
+            font-weight: 400;
+            word-break: break-word;
+        }
+
+        /* ================================
+           FORM
+        ================================ */
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
+
+        .form-row {
+            display: flex;
+            gap: 14px;
+            flex-wrap: wrap;
+        }
+
+        .form-row input,
+        .form-row textarea {
+            flex: 1;
+            min-width: 200px;
+            padding: 14px 18px;
+            background: #0f1117;
+            border: 1px solid #282b34;
+            border-radius: 12px;
+            color: #fff;
+            font-size: 15px;
+            transition: all 0.3s ease;
+            font-family: inherit;
+        }
+
+        .form-row input::placeholder,
+        .form-row textarea::placeholder {
+            color: #4a4f5e;
+        }
+
+        .form-row input:focus,
+        .form-row textarea:focus {
+            outline: none;
+            border-color: #4FC3F7;
+            box-shadow: 0 0 0 4px rgba(79, 195, 247, 0.08);
+        }
+
+        .form-row textarea {
+            min-height: 64px;
+            resize: vertical;
+            line-height: 1.5;
+        }
+
+        .form-actions {
+            display: flex;
+            gap: 14px;
+            flex-wrap: wrap;
+            margin-top: 4px;
+        }
+
+        .btn-generate {
+            padding: 14px 44px;
+            background: linear-gradient(135deg, #4FC3F7, #26A69A);
+            border: none;
+            border-radius: 12px;
+            color: #fff;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.25s ease;
+            flex: 1;
+            min-width: 180px;
+        }
+
+        .btn-generate:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 30px rgba(79, 195, 247, 0.25);
+        }
+
+        .btn-generate:active {
+            transform: scale(0.97);
+        }
+
+        .btn-generate:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-clear {
+            padding: 14px 24px;
+            background: transparent;
+            border: 1px solid #282b34;
+            border-radius: 12px;
+            color: #8a8f9a;
+            font-size: 15px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.25s ease;
+        }
+
+        .btn-clear:hover {
+            border-color: #4a4f5e;
+            color: #fff;
+        }
+
+        /* ================================
+           LOADING
+        ================================ */
+        .loading {
+            display: none;
+            margin-top: 20px;
+            text-align: center;
+            color: #5a5f6e;
+            font-size: 15px;
+        }
+
+        .loading::after {
+            content: '...';
+            animation: dots 1.5s steps(4, end) infinite;
+        }
+
+        @keyframes dots {
+            0% { content: ''; }
+            25% { content: '.'; }
+            50% { content: '..'; }
+            75% { content: '...'; }
+        }
+
+        /* ================================
+           RESULT
+        ================================ */
+        .result {
+            display: none;
+            margin-top: 24px;
+            background: #0f1117;
+            border-radius: 16px;
+            padding: 24px;
+            border: 1px solid rgba(255, 255, 255, 0.04);
+        }
+
+        .result-image-wrap {
+            text-align: center;
+            margin-bottom: 18px;
+        }
+
+        .result-image-wrap img {
+            max-width: 100%;
+            max-height: 500px;
+            border-radius: 14px;
+            box-shadow: 0 8px 40px rgba(0, 0, 0, 0.5);
+        }
+
+        .result-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 12px;
+            padding-top: 16px;
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .result-status {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 14px;
+            color: #81C784;
+        }
+
+        .result-status .dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #81C784;
+            display: inline-block;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+
+        .result-url {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: #1a1d24;
+            padding: 8px 14px 8px 18px;
+            border-radius: 40px;
+            border: 1px solid #282b34;
+            font-size: 13px;
+            color: #8a8f9a;
+            max-width: 100%;
+            overflow: hidden;
+        }
+
+        .result-url code {
+            color: #4FC3F7;
+            font-family: 'SF Mono', 'Fira Code', monospace;
+            font-size: 13px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 280px;
+        }
+
+        .result-url .copy-btn {
+            background: transparent;
+            border: none;
+            color: #5a5f6e;
+            cursor: pointer;
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-size: 16px;
+            transition: all 0.2s;
+        }
+
+        .result-url .copy-btn:hover {
+            color: #fff;
+            background: rgba(255, 255, 255, 0.06);
+        }
+
+        .result-error {
+            color: #E57373;
+            font-size: 14px;
+            padding: 12px 16px;
+            background: rgba(229, 115, 115, 0.08);
+            border-radius: 10px;
+            border: 1px solid rgba(229, 115, 115, 0.15);
+        }
+
+        /* ================================
+           API SECTION
+        ================================ */
+        .api-section {
+            margin-top: 32px;
+            padding-top: 24px;
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .api-section h3 {
+            font-size: 15px;
+            font-weight: 600;
+            color: #8a8f9a;
+            margin-bottom: 10px;
+        }
+
+        .api-section .endpoint {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .api-section .method {
+            background: rgba(79, 195, 247, 0.12);
+            color: #4FC3F7;
+            padding: 4px 14px;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        .api-section .url {
+            color: #8a8f9a;
+            font-family: 'SF Mono', 'Fira Code', monospace;
+            font-size: 14px;
+            word-break: break-all;
+        }
+
+        .api-section .body-example {
+            margin-top: 10px;
+            background: #0f1117;
+            padding: 14px 18px;
+            border-radius: 10px;
+            font-family: 'SF Mono', 'Fira Code', monospace;
+            font-size: 13px;
+            color: #8a8f9a;
+            overflow-x: auto;
+            border: 1px solid rgba(255, 255, 255, 0.04);
+        }
+
+        .api-section .body-example .key {
+            color: #FFB74D;
+        }
+        .api-section .body-example .string {
+            color: #81C784;
+        }
+        .api-section .body-example .bracket {
+            color: #4FC3F7;
+        }
+
+        /* ================================
+           FOOTER
+        ================================ */
+        .footer {
+            margin-top: 32px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 12px;
+            color: #4a4f5e;
+            font-size: 13px;
+            padding-top: 20px;
+            border-top: 1px solid rgba(255, 255, 255, 0.04);
+        }
+
+        .footer a {
+            color: #4FC3F7;
+            text-decoration: none;
+        }
+
+        .footer a:hover {
+            text-decoration: underline;
+        }
+
+        /* ================================
+           RESPONSIVE
+        ================================ */
+        @media (max-width: 640px) {
+            .container {
+                padding: 24px 18px;
+            }
+
+            .header-left h1 {
+                font-size: 28px;
+            }
+
+            .quote-preview {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .bubble-preview {
+                max-width: 100%;
+                width: 100%;
+            }
+
+            .bubble-preview::before {
+                display: none;
+            }
+
+            .text-preview {
+                font-size: 22px;
+            }
+
+            .result-meta {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .result-url {
+                width: 100%;
+            }
+
+            .result-url code {
+                max-width: 140px;
+            }
+
+            .api-section .endpoint {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .form-row {
+                flex-direction: column;
+            }
+
+            .form-row input,
+            .form-row textarea {
+                min-width: unset;
+                width: 100%;
+            }
+
+            .form-actions {
+                flex-direction: column;
+            }
+
+            .btn-generate {
+                min-width: unset;
+                width: 100%;
+            }
+        }
     </style>
 </head>
 <body>
-    <div class="card">
-        <h1>✦ DEV ZIKKY Quote API</h1>
-        <p>Generate beautiful Telegram-style quote images from WhatsApp messages. Supports profile pictures, display names, automatic font sizing, transparent PNG output, and custom username colors.</p>
 
-        <div class="demo">
+    <div class="container">
+
+        <!-- ================================
+        HEADER
+        ================================ -->
+        <div class="header">
+            <div class="header-left">
+                <h1>✦ Quote API</h1>
+                <p>Telegram-style quote generator — powered by DEV ZIKKY TECH</p>
+            </div>
+            <div class="badge">⚡ v1.0</div>
+        </div>
+
+        <!-- ================================
+        PREVIEW
+        ================================ -->
+        <div class="preview-section">
+            <div class="preview-label">📸 Live Preview</div>
             <div class="quote-preview" id="quotePreview">
                 <div class="avatar-preview" id="avatarPreview">D</div>
                 <div class="bubble-preview">
                     <div class="name-preview" id="namePreview">DEV ZIKKY</div>
-                    <div class="text-preview" id="textPreview">Hello! This quote was generated by DEV ❤️🔥</div>
+                    <div class="text-preview" id="textPreview">Hello! This quote was generated by DEV ❤️</div>
                 </div>
             </div>
+        </div>
 
-            <div class="form-group">
-                <div class="form-row">
-                    <input type="text" id="usernameInput" placeholder="Username" value="DEV ZIKKY">
-                    <input type="text" id="avatarInput" placeholder="Avatar URL (optional)">
-                </div>
-                <div class="form-row">
-                    <textarea id="textInput" placeholder="Message text">Hello! This quote was generated by DEV ❤️🔥</textarea>
-                </div>
-                <div class="form-row">
-                    <button class="btn-generate" id="generateBtn">✦ Generate Quote</button>
-                </div>
+        <!-- ================================
+        FORM
+        ================================ -->
+        <div class="form-group">
+            <div class="form-row">
+                <input type="text" id="usernameInput" placeholder="👤 Username" value="DEV ZIKKY" />
+                <input type="text" id="avatarInput" placeholder="🖼️ Avatar URL (optional)" />
             </div>
+            <div class="form-row">
+                <textarea id="textInput" placeholder="✏️ Message text">Hello! This quote was generated by DEV ❤️</textarea>
+            </div>
+            <div class="form-actions">
+                <button class="btn-generate" id="generateBtn">✦ Generate Quote</button>
+                <button class="btn-clear" id="clearBtn">✕ Clear</button>
+            </div>
+        </div>
 
-            <div class="loading" id="loadingIndicator">Generating...</div>
-            <div class="result" id="resultContainer">
+        <!-- ================================
+        LOADING
+        ================================ -->
+        <div class="loading" id="loadingIndicator">⏳ Generating your quote</div>
+
+        <!-- ================================
+        RESULT
+        ================================ -->
+        <div class="result" id="resultContainer">
+            <div class="result-image-wrap">
                 <img id="resultImage" src="" alt="Generated Quote" />
-                <div class="status" id="statusMessage">Quote generated successfully!</div>
+            </div>
+            <div class="result-meta">
+                <div class="result-status">
+                    <span class="dot"></span>
+                    <span id="statusMessage">Quote generated successfully!</span>
+                </div>
+                <div class="result-url">
+                    <span>🔗</span>
+                    <code id="resultUrl">https://zquote.onrender.com/images/...</code>
+                    <button class="copy-btn" id="copyBtn" title="Copy URL">📋</button>
+                </div>
+            </div>
+            <div id="errorMessage" style="display:none;" class="result-error"></div>
+        </div>
+
+        <!-- ================================
+        API SECTION
+        ================================ -->
+        <div class="api-section">
+            <h3>📡 API Endpoint</h3>
+            <div class="endpoint">
+                <span class="method">POST</span>
+                <span class="url" id="apiUrl">/api/quote</span>
+            </div>
+            <div class="body-example">
+                <span class="bracket">{</span><br />
+                &nbsp;&nbsp;<span class="key">"username"</span>: <span class="string">"DEV ZIKKY"</span>,<br />
+                &nbsp;&nbsp;<span class="key">"text"</span>: <span class="string">"Hello world!"</span>,<br />
+                &nbsp;&nbsp;<span class="key">"avatar"</span>: <span class="string">"default"</span><br />
+                <span class="bracket">}</span>
             </div>
         </div>
 
-        <div class="api-section">
-            <p><strong>API Endpoint:</strong> <code>POST /api/quote</code></p>
-            <p style="font-size:13px; margin-top:8px;">
-                <strong>Body:</strong>
-                <code>{ "text": "Hello", "username": "DEV ZIKKY", "avatar": "https://..." }</code>
-            </p>
-            <p style="font-size:13px; margin-top:4px; color:#888;">
-                Images expire after 3 minutes.
-            </p>
+        <!-- ================================
+        FOOTER
+        ================================ -->
+        <div class="footer">
+            <span>© 2026 <a href="#">DEV ZIKKY TECH</a></span>
+            <span>Images expire in <strong>3 minutes</strong></span>
         </div>
 
-        <div class="footer">
-            <span>© 2026 DEV ZIKKY TECH</span>
-            <span>Powered by <a href="#">Quote API</a></span>
-        </div>
     </div>
 
+    <!-- ================================
+    JAVASCRIPT
+    ================================ -->
     <script>
+        // ================================
+        // DOM REFERENCES
+        // ================================
         const API_URL = '/api/quote';
 
         const usernameInput = document.getElementById('usernameInput');
         const textInput = document.getElementById('textInput');
         const avatarInput = document.getElementById('avatarInput');
         const generateBtn = document.getElementById('generateBtn');
+        const clearBtn = document.getElementById('clearBtn');
         const resultContainer = document.getElementById('resultContainer');
         const resultImage = document.getElementById('resultImage');
+        const resultUrl = document.getElementById('resultUrl');
         const statusMessage = document.getElementById('statusMessage');
+        const errorMessage = document.getElementById('errorMessage');
         const loadingIndicator = document.getElementById('loadingIndicator');
+        const copyBtn = document.getElementById('copyBtn');
+        const apiUrlDisplay = document.getElementById('apiUrl');
 
-        usernameInput.addEventListener('input', updatePreview);
-        textInput.addEventListener('input', updatePreview);
+        // Set API URL dynamically
+        apiUrlDisplay.textContent = window.location.origin + '/api/quote';
 
+        // ================================
+        // LIVE PREVIEW
+        // ================================
         function updatePreview() {
-            document.getElementById('namePreview').textContent = usernameInput.value || 'User';
-            document.getElementById('textPreview').textContent = textInput.value || 'Message...';
-            const avatarText = usernameInput.value.charAt(0).toUpperCase() || '?';
-            document.getElementById('avatarPreview').textContent = avatarText;
+            const name = usernameInput.value.trim() || 'User';
+            const text = textInput.value.trim() || 'Message...';
+            const avatar = avatarInput.value.trim();
 
-            const avatarUrl = avatarInput.value.trim();
+            document.getElementById('namePreview').textContent = name;
+            document.getElementById('textPreview').textContent = text;
+
             const avatarEl = document.getElementById('avatarPreview');
-            if (avatarUrl) {
-                avatarEl.innerHTML = `<img src="${avatarUrl}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;" />`;
+            if (avatar) {
+                avatarEl.innerHTML = `<img src="${avatar}" alt="avatar" />`;
             } else {
-                avatarEl.innerHTML = avatarText;
-                avatarEl.style.background = '#3A3A3E';
+                const initial = name.charAt(0).toUpperCase() || '?';
+                avatarEl.innerHTML = initial;
+                avatarEl.style.background = '#2a2d36';
                 avatarEl.style.display = 'flex';
                 avatarEl.style.alignItems = 'center';
                 avatarEl.style.justifyContent = 'center';
                 avatarEl.style.fontSize = '28px';
-                avatarEl.style.fontWeight = 'bold';
+                avatarEl.style.fontWeight = '700';
                 avatarEl.style.color = '#fff';
             }
         }
 
+        usernameInput.addEventListener('input', updatePreview);
+        textInput.addEventListener('input', updatePreview);
+        avatarInput.addEventListener('input', updatePreview);
+
+        // ================================
+        // CLEAR FORM
+        // ================================
+        clearBtn.addEventListener('click', () => {
+            usernameInput.value = '';
+            textInput.value = '';
+            avatarInput.value = '';
+            resultContainer.style.display = 'none';
+            errorMessage.style.display = 'none';
+            updatePreview();
+        });
+
+        // ================================
+        // GENERATE QUOTE
+        // ================================
         generateBtn.addEventListener('click', async () => {
             const username = usernameInput.value.trim() || 'User';
             const text = textInput.value.trim() || 'Message...';
             const avatar = avatarInput.value.trim() || 'default';
 
+            // Update preview
             document.getElementById('namePreview').textContent = username;
             document.getElementById('textPreview').textContent = text;
 
+            // UI: Loading state
             loadingIndicator.style.display = 'block';
             resultContainer.style.display = 'none';
+            errorMessage.style.display = 'none';
             generateBtn.disabled = true;
-            generateBtn.textContent = 'Generating...';
+            generateBtn.textContent = '⏳ Generating...';
 
             try {
                 const response = await fetch(API_URL, {
@@ -148,19 +742,23 @@
                 const data = await response.json();
 
                 if (data.success) {
+                    // Show result
                     resultImage.src = data.image;
+                    resultUrl.textContent = data.image;
                     resultContainer.style.display = 'block';
-                    statusMessage.style.display = 'block';
-                    statusMessage.textContent = '✅ Quote generated successfully! Expires in 3 minutes.';
+                    statusMessage.textContent = '✅ Quote generated successfully!';
+                    statusMessage.style.color = '#81C784';
+                    errorMessage.style.display = 'none';
                 } else {
-                    statusMessage.textContent = '❌ Error: ' + (data.error || 'Unknown error');
-                    statusMessage.style.color = '#E57373';
-                    statusMessage.style.display = 'block';
+                    // Show error
+                    errorMessage.textContent = '❌ ' + (data.error || 'Unknown error');
+                    errorMessage.style.display = 'block';
+                    resultContainer.style.display = 'none';
                 }
-            } catch (error) {
-                statusMessage.textContent = '❌ Failed to generate quote: ' + error.message;
-                statusMessage.style.color = '#E57373';
-                statusMessage.style.display = 'block';
+            } catch (err) {
+                errorMessage.textContent = '❌ Failed to generate quote: ' + err.message;
+                errorMessage.style.display = 'block';
+                resultContainer.style.display = 'none';
             } finally {
                 loadingIndicator.style.display = 'none';
                 generateBtn.disabled = false;
@@ -168,14 +766,46 @@
             }
         });
 
-        updatePreview();
+        // ================================
+        // COPY URL
+        // ================================
+        copyBtn.addEventListener('click', async () => {
+            const url = resultUrl.textContent;
+            if (url && url !== 'https://zquote.onrender.com/images/...') {
+                try {
+                    await navigator.clipboard.writeText(url);
+                    copyBtn.textContent = '✅';
+                    setTimeout(() => { copyBtn.textContent = '📋'; }, 2000);
+                } catch {
+                    // Fallback
+                    const range = document.createRange();
+                    const selection = window.getSelection();
+                    range.selectNodeContents(resultUrl);
+                    selection.removeAllRanges();
+                    selection.addRange(range);
+                    document.execCommand('copy');
+                    copyBtn.textContent = '✅';
+                    setTimeout(() => { copyBtn.textContent = '📋'; }, 2000);
+                }
+            }
+        });
 
+        // ================================
+        // KEYBOARD SHORTCUTS
+        // ================================
         textInput.addEventListener('keydown', (e) => {
             if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
                 generateBtn.click();
             }
         });
+
+        // ================================
+        // INITIAL PREVIEW
+        // ================================
+        updatePreview();
     </script>
+
 </body>
 </html>
+
 

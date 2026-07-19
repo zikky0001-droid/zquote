@@ -41,11 +41,12 @@ export async function generateQuote({ text, username, avatar, color }) {
                     background: 'transparent',
                 },
                 children: [
-                    // Avatar
+                    // Avatar container
                     {
                         type: 'div',
                         props: {
                             style: {
+                                display: 'flex',
                                 width: '72px',
                                 height: '72px',
                                 borderRadius: '50%',
@@ -59,6 +60,7 @@ export async function generateQuote({ text, username, avatar, color }) {
                                     props: {
                                         src: avatar,
                                         style: {
+                                            display: 'flex',
                                             width: '100%',
                                             height: '100%',
                                             objectFit: 'cover',
@@ -70,12 +72,12 @@ export async function generateQuote({ text, username, avatar, color }) {
                                     type: 'div',
                                     props: {
                                         style: {
-                                            width: '100%',
-                                            height: '100%',
-                                            background: '#3A3A3E',
                                             display: 'flex',
                                             alignItems: 'center',
                                             justifyContent: 'center',
+                                            width: '100%',
+                                            height: '100%',
+                                            background: '#3A3A3E',
                                             fontSize: '28px',
                                             fontWeight: 'bold',
                                             color: '#FFFFFF',
@@ -86,11 +88,13 @@ export async function generateQuote({ text, username, avatar, color }) {
                             ],
                         },
                     },
-                    // Bubble
+                    // Bubble container
                     {
                         type: 'div',
                         props: {
                             style: {
+                                display: 'flex',
+                                flexDirection: 'column',
                                 background: '#2B2D31',
                                 padding: '22px 28px',
                                 borderRadius: '32px',
@@ -105,6 +109,7 @@ export async function generateQuote({ text, username, avatar, color }) {
                                     type: 'div',
                                     props: {
                                         style: {
+                                            display: 'flex',
                                             position: 'absolute',
                                             left: '-18px',
                                             bottom: '14px',
@@ -120,6 +125,7 @@ export async function generateQuote({ text, username, avatar, color }) {
                                     type: 'div',
                                     props: {
                                         style: {
+                                            display: 'flex',
                                             fontSize: '21px',
                                             fontWeight: 700,
                                             color: color,
@@ -133,6 +139,7 @@ export async function generateQuote({ text, username, avatar, color }) {
                                     type: 'div',
                                     props: {
                                         style: {
+                                            display: 'flex',
                                             fontSize: 'auto',
                                             lineHeight: '1.3',
                                             color: '#FFFFFF',
@@ -186,4 +193,5 @@ export async function generateQuote({ text, username, avatar, color }) {
     const pngData = resvg.render();
     return pngData.asPng();
 }
+
 
