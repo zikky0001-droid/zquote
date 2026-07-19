@@ -1,6 +1,6 @@
 /**
  * Quote Renderer - SVG to PNG
- * Uses Satori + Resvg with Twemoji SVG emoji replacement
+ * Uses Satori + Resvg with Base64-encoded Twemoji SVGs
  */
 
 import fs from 'fs';
@@ -10,6 +10,7 @@ import satori from 'satori';
 import { Resvg } from '@resvg/resvg-js';
 import twemoji from 'twemoji';
 import emojiRegex from 'emoji-regex';
+import axios from 'axios';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -23,7 +24,6 @@ const FONTS_DIR = path.join(__dirname, 'fonts');
 // EMOJI CACHE
 // ================================
 const emojiCache = new Map();
-const TWEMOJI_BASE = 'https://cdn.jsdelivr.net/npm/twemoji@14.1.2/svg/';
 
 // ================================
 // LOAD FONTS
@@ -85,9 +85,9 @@ const allFonts = loadAllFonts();
 console.log(`[FONTS] Total fonts loaded: ${allFonts.length}`);
 
 // ================================
-// EMOJI TO SVG CONVERTER
+// EMOJI TO BASE64 SVG
 // ================================
-function getEmojiSVG(emoji) {
+async function getEmojiBase64SVG(emoji) {
     // Check cache
     if (emojiCache.has(emoji)) {
         return emojiCache.get(emoji);
@@ -96,11 +96,23 @@ function getEmojiSVG(emoji) {
     try {
         // Get Twemoji SVG URL
         const codePoint = twemoji.convert.toCodePoint(emoji);
-        const svgUrl = `${TWEMOJI_BASE}${codePoint}.svg`;
+        const svgUrl = `https://cdn.jsdelivr.net/npm/twemoji@14.1.2/svg/${codePoint}.svg`;
+
+        // Download SVG
+        const response = await axios.get(svgUrl, {
+            responseType: 'text',
+            timeout: 5000
+        });
+
+        const svgData = response.data;
+        
+        // Convert to Base64
+        const base64 = Buffer.from(svgData).toString('base64');
+        const dataUri = `data:image/svg+xml;base64,${base64}`;
         
         // Store in cache
-        emojiCache.set(emoji, svgUrl);
-        return svgUrl;
+        emojiCache.set(emoji, dataUri);
+        return dataUri;
     } catch (error) {
         console.warn(`[EMOJI] Failed to get SVG for: ${emoji}`, error.message);
         return null;
@@ -122,21 +134,11 @@ function parseEmojis(text) {
             });
         }
 
-        // Add emoji as image
-        const svgUrl = getEmojiSVG(match[0]);
-        if (svgUrl) {
-            parts.push({
-                type: 'emoji',
-                value: match[0],
-                svg: svgUrl
-            });
-        } else {
-            // Fallback: render as text
-            parts.push({
-                type: 'text',
-                value: match[0]
-            });
-        }
+        // Add emoji as image (will be resolved later)
+        parts.push({
+            type: 'emoji',
+            value: match[0],
+        });
 
         lastIndex = regex.lastIndex;
     }
@@ -152,8 +154,24 @@ function parseEmojis(text) {
     return parts;
 }
 
-function buildTextNode(parts, fontSize, color) {
-    if (parts.length === 1 && parts[0].type === 'text') {
+async function buildTextNode(parts, fontSize, color) {
+    // Resolve emojis to Base64 SVGs
+    const resolvedParts = await Promise.all(parts.map(async (part) => {
+        if (part.type === 'text') {
+            return part;
+        } else {
+            const svg = await getEmojiBase64SVG(part.value);
+            return {
+                ...part,
+                svg: svg
+            };
+        }
+    }));
+
+    // Filter out emojis that failed to load
+    const validParts = resolvedParts.filter(p => p.type === 'text' || p.svg);
+
+    if (validParts.length === 1 && validParts[0].type === 'text') {
         return {
             type: 'div',
             props: {
@@ -166,7 +184,7 @@ function buildTextNode(parts, fontSize, color) {
                     wordBreak: 'break-word',
                     fontFamily: '"Roboto", "Noto Sans", sans-serif',
                 },
-                children: parts[0].value,
+                children: validParts[0].value,
             },
         };
     }
@@ -186,7 +204,7 @@ function buildTextNode(parts, fontSize, color) {
                 fontFamily: '"Roboto", "Noto Sans", sans-serif',
                 gap: '2px',
             },
-            children: parts.map((part, index) => {
+            children: validParts.map((part) => {
                 if (part.type === 'text') {
                     return {
                         type: 'span',
@@ -200,7 +218,7 @@ function buildTextNode(parts, fontSize, color) {
                         },
                     };
                 } else {
-                    // Emoji as image
+                    // Emoji as Base64 image
                     return {
                         type: 'img',
                         props: {
@@ -225,7 +243,7 @@ function buildTextNode(parts, fontSize, color) {
 export async function generateQuote({ text, username, avatar, color }) {
     // Parse emojis in the message
     const textParts = parseEmojis(text);
-    const textNode = buildTextNode(textParts, 'auto', '#FFFFFF');
+    const textNode = await buildTextNode(textParts, 'auto', '#FFFFFF');
 
     // Build the SVG using Satori
     const svg = await satori(
@@ -240,9 +258,7 @@ export async function generateQuote({ text, username, avatar, color }) {
                     background: 'transparent',
                 },
                 children: [
-                    // ================================
-                    // AVATAR
-                    // ================================
+                    // Avatar
                     {
                         type: 'div',
                         props: {
@@ -290,9 +306,7 @@ export async function generateQuote({ text, username, avatar, color }) {
                             ],
                         },
                     },
-                    // ================================
-                    // BUBBLE
-                    // ================================
+                    // Bubble
                     {
                         type: 'div',
                         props: {
@@ -354,9 +368,7 @@ export async function generateQuote({ text, username, avatar, color }) {
         }
     );
 
-    // ================================
-    // RENDER SVG TO PNG
-    // ================================
+    // Render SVG to PNG
     const resvg = new Resvg(svg, {
         fitTo: {
             mode: 'width',
@@ -376,5 +388,4 @@ export async function generateQuote({ text, username, avatar, color }) {
     const pngData = resvg.render();
     return pngData.asPng();
 }
-
 
