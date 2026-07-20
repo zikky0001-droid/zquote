@@ -1,8 +1,6 @@
 /**
  * Quote Renderer - SVG to PNG
- * Uses Satori + Resvg for high-quality rendering
- * Loads ALL available fonts from /fonts folder
- * LARGER SIZE with ADAPTIVE FONT SIZING
+ * Avatar aligned with bubble bottom + tail pointing to avatar
  */
 
 import fs from 'fs';
@@ -23,7 +21,6 @@ const __dirname = path.dirname(__filename);
 const FONTS_DIR = path.join(__dirname, 'fonts');
 const EMOJI_CACHE_DIR = path.join(__dirname, 'emoji-cache');
 
-// Create emoji cache directory
 if (!fs.existsSync(EMOJI_CACHE_DIR)) {
     fs.mkdirSync(EMOJI_CACHE_DIR, { recursive: true });
 }
@@ -32,7 +29,7 @@ if (!fs.existsSync(EMOJI_CACHE_DIR)) {
 // SIZE SETTINGS
 // ================================
 const IMAGE_WIDTH = 900;
-const AVATAR_SIZE = 100;
+const AVATAR_SIZE = 90;
 const USERNAME_FONT_SIZE = 32;
 const BUBBLE_PADDING = 30;
 const BUBBLE_RADIUS = 40;
@@ -42,13 +39,12 @@ const MAX_HEIGHT = 800;
 const MIN_HEIGHT = 200;
 const MAX_CHARS = 1000;
 
-// Font size ranges for adaptive sizing
 const MAX_MESSAGE_FONT_SIZE = 42;
 const MIN_MESSAGE_FONT_SIZE = 16;
 const LINE_HEIGHT_RATIO = 1.4;
 
 // ================================
-// LOAD ALL FONTS FROM FONTS FOLDER
+// LOAD FONTS
 // ================================
 function loadSpecificFonts() {
     const fonts = [];
@@ -216,18 +212,15 @@ function parseEmojis(text) {
 }
 
 // ================================
-// ADAPTIVE FONT SIZING (FIXED - No document)
+// ADAPTIVE FONT SIZING
 // ================================
 function calculateOptimalFontSize(text, maxWidth, maxHeight) {
-    // Start with largest font size
     let fontSize = MAX_MESSAGE_FONT_SIZE;
     let lines = [];
     let textHeight = 0;
     let textWidth = 0;
 
-    // Server-side text measurement (approximate)
     function measureTextWidth(str, size) {
-        // Average character width ~ size * 0.55 for most fonts
         return str.length * size * 0.55;
     }
 
@@ -235,7 +228,6 @@ function calculateOptimalFontSize(text, maxWidth, maxHeight) {
         const lineHeight = fontSize * LINE_HEIGHT_RATIO;
         const maxCharsPerLine = Math.floor(maxWidth / (fontSize * 0.55));
         
-        // Split text into lines
         lines = [];
         let currentLine = '';
         const words = text.split(' ');
@@ -251,37 +243,30 @@ function calculateOptimalFontSize(text, maxWidth, maxHeight) {
         }
         if (currentLine) lines.push(currentLine.trim());
 
-        // Calculate total text height
         textHeight = lines.length * lineHeight;
         textWidth = Math.max(...lines.map(line => measureTextWidth(line, fontSize)));
 
-        // Check if text fits
         if (textHeight <= maxHeight && textWidth <= maxWidth) {
             break;
         }
 
-        // Reduce font size
         fontSize -= 2;
     }
 
-    // If still doesn't fit at minimum size, truncate
     let truncated = false;
     let finalText = text;
 
     if (fontSize <= MIN_MESSAGE_FONT_SIZE && textHeight > maxHeight) {
-        // Calculate how many lines fit
         const lineHeight = MIN_MESSAGE_FONT_SIZE * LINE_HEIGHT_RATIO;
         const maxLines = Math.floor(maxHeight / lineHeight);
         const maxCharsPerLine = Math.floor(maxWidth / (MIN_MESSAGE_FONT_SIZE * 0.55));
         const maxChars = maxLines * maxCharsPerLine;
         
-        // Truncate text
         if (finalText.length > maxChars) {
             finalText = finalText.substring(0, maxChars - 3) + '...';
             truncated = true;
         }
         
-        // Recalculate lines with truncated text
         lines = [];
         let currentLine = '';
         const words = finalText.split(' ');
@@ -306,7 +291,7 @@ function calculateOptimalFontSize(text, maxWidth, maxHeight) {
 }
 
 // ================================
-// BUILD MESSAGE NODE (WITH EMOJIS & ADAPTIVE FONT)
+// BUILD MESSAGE NODE
 // ================================
 async function buildMessageNode(text, fontSize) {
     const parts = parseEmojis(text);
@@ -407,18 +392,13 @@ async function buildMessageNode(text, fontSize) {
 // GENERATE QUOTE
 // ================================
 export async function generateQuote({ text, username, avatar, color }) {
-    // ================================
-    // STEP 1: CHARACTER LIMIT (1000)
-    // ================================
+    // Character limit
     let processedText = text;
     if (processedText.length > MAX_CHARS) {
         processedText = processedText.substring(0, MAX_CHARS - 3) + '...';
-        console.log(`[RENDERER] Text truncated from ${text.length} to ${processedText.length} chars`);
     }
 
-    // ================================
-    // STEP 2: CALCULATE ADAPTIVE FONT SIZE
-    // ================================
+    // Adaptive font sizing
     const maxTextWidth = MAX_BUBBLE_WIDTH - BUBBLE_PADDING * 2 - 10;
     const maxTextHeight = 600;
     
@@ -428,11 +408,7 @@ export async function generateQuote({ text, username, avatar, color }) {
         maxTextHeight
     );
 
-    console.log(`[RENDERER] Font size: ${fontSize}px, Lines: ${lines.length}, Truncated: ${truncated}`);
-
-    // ================================
-    // STEP 3: CALCULATE HEIGHT
-    // ================================
+    // Calculate height
     const lineHeight = fontSize * LINE_HEIGHT_RATIO;
     const textHeight = lines.length * lineHeight;
     const usernameHeight = USERNAME_FONT_SIZE + 14;
@@ -440,13 +416,31 @@ export async function generateQuote({ text, username, avatar, color }) {
     const calculatedHeight = usernameHeight + textHeight + paddingTotal;
     const finalHeight = Math.min(Math.max(calculatedHeight, MIN_HEIGHT), MAX_HEIGHT);
 
-    // ================================
-    // STEP 4: BUILD MESSAGE NODE
-    // ================================
     const messageNode = await buildMessageNode(finalText, fontSize);
 
     // ================================
-    // STEP 5: GENERATE SVG
+    // POSITION CALCULATIONS (FIXED)
+    // ================================
+    const bubblePadding = 30;
+    const avatarSize = AVATAR_SIZE;
+    const gapBetweenAvatarAndBubble = 18;
+    
+    // Bubble position
+    const bubbleX = avatarSize + gapBetweenAvatarAndBubble + 10;
+    const bubbleY = 30;
+    const bubbleW = Math.min(MAX_BUBBLE_WIDTH, Math.max(MIN_BUBBLE_WIDTH, 400));
+    const bubbleH = finalHeight - 60;
+    
+    // Avatar positioned so bottom aligns with bubble bottom
+    const avatarX = 15;
+    const avatarY = bubbleY + bubbleH - avatarSize; // ← Bottom aligns with bubble
+
+    // Tail pointing to avatar (curved)
+    const tailX = bubbleX - 10;
+    const tailY = bubbleY + bubbleH - 28;
+
+    // ================================
+    // GENERATE SVG
     // ================================
     const svg = await satori(
         {
@@ -454,23 +448,27 @@ export async function generateQuote({ text, username, avatar, color }) {
             props: {
                 style: {
                     display: 'flex',
-                    alignItems: 'flex-end',
-                    gap: '24px',
                     padding: '30px',
                     background: 'transparent',
+                    position: 'relative',
+                    width: IMAGE_WIDTH,
+                    height: finalHeight,
                     fontFamily: '"Roboto", "Noto Sans", "Noto Color Emoji", sans-serif',
                 },
                 children: [
                     // ================================
-                    // AVATAR
+                    // AVATAR (Bottom-aligned with bubble)
                     // ================================
                     {
                         type: 'div',
                         props: {
                             style: {
                                 display: 'flex',
-                                width: AVATAR_SIZE,
-                                height: AVATAR_SIZE,
+                                position: 'absolute',
+                                left: avatarX,
+                                bottom: avatarY,
+                                width: avatarSize,
+                                height: avatarSize,
                                 borderRadius: '50%',
                                 overflow: 'hidden',
                                 flexShrink: 0,
@@ -512,6 +510,24 @@ export async function generateQuote({ text, username, avatar, color }) {
                         },
                     },
                     // ================================
+                    // TAIL (Points to avatar)
+                    // ================================
+                    {
+                        type: 'div',
+                        props: {
+                            style: {
+                                display: 'flex',
+                                position: 'absolute',
+                                left: tailX,
+                                bottom: tailY,
+                                width: '32px',
+                                height: '32px',
+                                background: '#2B2D31',
+                                clipPath: 'path("M32 0C18 6 6 18 0 32C14 26 24 22 32 18Z")',
+                            },
+                        },
+                    },
+                    // ================================
                     // BUBBLE
                     // ================================
                     {
@@ -520,32 +536,18 @@ export async function generateQuote({ text, username, avatar, color }) {
                             style: {
                                 display: 'flex',
                                 flexDirection: 'column',
+                                position: 'absolute',
+                                left: bubbleX,
+                                top: bubbleY,
+                                width: bubbleW,
+                                height: bubbleH,
                                 background: '#2B2D31',
                                 padding: `${BUBBLE_PADDING}px ${BUBBLE_PADDING + 8}px`,
                                 borderRadius: BUBBLE_RADIUS,
-                                position: 'relative',
-                                maxWidth: MAX_BUBBLE_WIDTH,
-                                minWidth: MIN_BUBBLE_WIDTH,
                                 boxShadow: '0 12px 40px rgba(0,0,0,0.35)',
                                 fontFamily: '"Roboto", "Noto Sans", "Noto Color Emoji", sans-serif',
                             },
                             children: [
-                                // Tail
-                                {
-                                    type: 'div',
-                                    props: {
-                                        style: {
-                                            display: 'flex',
-                                            position: 'absolute',
-                                            left: '-24px',
-                                            bottom: '18px',
-                                            width: '38px',
-                                            height: '38px',
-                                            background: '#2B2D31',
-                                            clipPath: 'path("M38 0C22 10 10 22 0 38C16 32 26 28 38 24Z")',
-                                        },
-                                    },
-                                },
                                 // Username
                                 {
                                     type: 'div',
@@ -561,7 +563,7 @@ export async function generateQuote({ text, username, avatar, color }) {
                                         children: username,
                                     },
                                 },
-                                // Message text
+                                // Message
                                 messageNode,
                                 // Truncation notice
                                 ...(truncated ? [{
@@ -591,7 +593,7 @@ export async function generateQuote({ text, username, avatar, color }) {
     );
 
     // ================================
-    // STEP 6: RENDER SVG TO PNG
+    // RENDER SVG TO PNG
     // ================================
     const resvg = new Resvg(svg, {
         fitTo: {
@@ -612,5 +614,6 @@ export async function generateQuote({ text, username, avatar, color }) {
     const pngData = resvg.render();
     return pngData.asPng();
 }
+
 
 
