@@ -1,6 +1,6 @@
 /**
  * Quote Renderer - SVG to PNG
- * Let Satori handle layout naturally - no manual sizing
+ * Dynamic height estimation - Best working version
  */
 
 import fs from 'fs';
@@ -33,10 +33,12 @@ const AVATAR_SIZE = 80;
 const USERNAME_FONT_SIZE = 24;
 const MESSAGE_FONT_SIZE = 32;
 const BUBBLE_PADDING = 24;
-const BUBBLE_RADIUS = 36;
+const BUBBLE_RADIUS = 38;
 const MAX_BUBBLE_WIDTH = 620;
-const MIN_BUBBLE_WIDTH = 200;
 const MAX_CHARS = 1000;
+const MIN_HEIGHT = 150;
+const MAX_HEIGHT = 800;
+const CHARS_PER_LINE = 28;
 
 // ================================
 // LOAD FONTS
@@ -176,6 +178,11 @@ async function getEmojiBase64SVG(emoji) {
 // ================================
 // PARSE EMOJIS
 // ================================
+function hasEmoji(text) {
+    const regex = emojiRegex();
+    return regex.test(text);
+}
+
 function parseEmojis(text) {
     const regex = emojiRegex();
     const parts = [];
@@ -207,9 +214,27 @@ function parseEmojis(text) {
 }
 
 // ================================
-// BUILD MESSAGE NODE (Let Satori handle everything)
+// BUILD MESSAGE NODE
 // ================================
 async function buildMessageNode(text, fontSize) {
+    if (!hasEmoji(text)) {
+        return {
+            type: 'div',
+            props: {
+                style: {
+                    display: 'flex',
+                    fontSize: fontSize,
+                    color: '#FFFFFF',
+                    fontWeight: 400,
+                    lineHeight: 1.4,
+                    fontFamily: '"Roboto", "Noto Sans", sans-serif',
+                    flexWrap: 'wrap',
+                },
+                children: text,
+            },
+        };
+    }
+
     const parts = parseEmojis(text);
     const children = [];
     let textBuffer = '';
@@ -220,9 +245,10 @@ async function buildMessageNode(text, fontSize) {
         } else {
             if (textBuffer) {
                 children.push({
-                    type: 'span',
+                    type: 'div',
                     props: {
                         style: {
+                            display: 'flex',
                             fontSize: fontSize,
                             color: '#FFFFFF',
                             fontWeight: 400,
@@ -242,18 +268,19 @@ async function buildMessageNode(text, fontSize) {
                     props: {
                         src: svg,
                         style: {
-                            display: 'inline-block',
+                            display: 'flex',
                             width: emojiSize,
                             height: emojiSize,
-                            verticalAlign: 'middle',
+                            flexShrink: 0,
                         },
                     },
                 });
             } else {
                 children.push({
-                    type: 'span',
+                    type: 'div',
                     props: {
                         style: {
+                            display: 'flex',
                             fontSize: fontSize,
                             color: '#FFFFFF',
                             fontWeight: 400,
@@ -268,9 +295,10 @@ async function buildMessageNode(text, fontSize) {
 
     if (textBuffer) {
         children.push({
-            type: 'span',
+            type: 'div',
             props: {
                 style: {
+                    display: 'flex',
                     fontSize: fontSize,
                     color: '#FFFFFF',
                     fontWeight: 400,
@@ -303,7 +331,50 @@ async function buildMessageNode(text, fontSize) {
 }
 
 // ================================
-// TRUNCATE TEXT (Simple)
+// CALCULATE HEIGHT (IMPROVED ESTIMATE)
+// ================================
+function calculateHeight(text, username) {
+    // Estimate lines based on character count and average width
+    const lineHeight = MESSAGE_FONT_SIZE * 1.4;
+    const charsPerLine = CHARS_PER_LINE;
+    
+    // Count words and estimate wrapping
+    const words = text.split(' ');
+    let lines = 1;
+    let currentLineLength = 0;
+    
+    for (const word of words) {
+        const wordLength = word.length;
+        if (currentLineLength + wordLength + 1 > charsPerLine) {
+            lines++;
+            currentLineLength = wordLength;
+        } else {
+            currentLineLength += wordLength + 1;
+        }
+    }
+    
+    // Add extra lines for long words and edge cases
+    const estimatedLines = Math.max(1, Math.ceil(lines * 1.1));
+    
+    const usernameHeight = USERNAME_FONT_SIZE + 14;
+    const messageHeight = estimatedLines * lineHeight;
+    const paddingTotal = BUBBLE_PADDING * 2 + 10;
+    const bubbleHeight = usernameHeight + messageHeight + paddingTotal;
+    
+    const finalBubbleHeight = Math.min(Math.max(bubbleHeight, MIN_HEIGHT), MAX_HEIGHT);
+    const canvasHeight = finalBubbleHeight + 60;
+    
+    console.log(`[RENDERER] Text: ${text.length} chars, ${estimatedLines} lines, height: ${canvasHeight}px`);
+    
+    return {
+        bubbleHeight: finalBubbleHeight,
+        canvasHeight: canvasHeight,
+        lines: estimatedLines,
+    };
+}
+
+// ================================
+// TRUNCATE TEXT
 // ================================
 function truncateText(text, maxLength = MAX_CHARS) {
     if (text.length <= maxLength) return text;
@@ -311,18 +382,20 @@ function truncateText(text, maxLength = MAX_CHARS) {
 }
 
 // ================================
-// GENERATE QUOTE - SIMPLIFIED
+// GENERATE QUOTE
 // ================================
 export async function generateQuote({ text, username, avatar, color }) {
-    // Simple truncation
     const finalText = truncateText(text);
     const isTruncated = finalText !== text;
+    
+    // Calculate dynamic height
+    const { canvasHeight, lines } = calculateHeight(finalText, username);
 
-    // Build message node with Satori handling layout
+    // Build message node
     const messageNode = await buildMessageNode(finalText, MESSAGE_FONT_SIZE);
 
     // ================================
-    // GENERATE SVG - Let Satori handle sizing
+    // GENERATE SVG
     // ================================
     const svg = await satori(
         {
@@ -332,14 +405,14 @@ export async function generateQuote({ text, username, avatar, color }) {
                     display: 'flex',
                     alignItems: 'flex-end',
                     gap: '18px',
-                    padding: '30px 30px 30px 20px',
+                    padding: '20px',
                     background: 'transparent',
                     fontFamily: '"Roboto", "Noto Sans", "Noto Color Emoji", sans-serif',
                     width: IMAGE_WIDTH,
                 },
                 children: [
                     // ================================
-                    // AVATAR (Bottom-aligned with bubble)
+                    // AVATAR
                     // ================================
                     {
                         type: 'div',
@@ -353,7 +426,6 @@ export async function generateQuote({ text, username, avatar, color }) {
                                 flexShrink: 0,
                                 boxShadow: '0 0 0 4px rgba(255,255,255,0.08)',
                                 alignSelf: 'flex-end',
-                                marginBottom: '0px',
                             },
                             children: avatar && avatar !== 'default' ? [
                                 {
@@ -391,7 +463,7 @@ export async function generateQuote({ text, username, avatar, color }) {
                         },
                     },
                     // ================================
-                    // BUBBLE (Satori handles sizing)
+                    // BUBBLE
                     // ================================
                     {
                         type: 'div',
@@ -404,28 +476,32 @@ export async function generateQuote({ text, username, avatar, color }) {
                                 borderRadius: BUBBLE_RADIUS,
                                 position: 'relative',
                                 maxWidth: MAX_BUBBLE_WIDTH,
-                                minWidth: MIN_BUBBLE_WIDTH,
                                 boxShadow: '0 6px 20px rgba(0,0,0,0.25)',
-                                flexShrink: 0,
+                                alignSelf: 'flex-start',
                             },
                             children: [
                                 // ================================
-                                // TAIL (Rounded SVG path)
+                                // TAIL (Curved SVG path)
                                 // ================================
                                 {
-                                    type: 'div',
+                                    type: 'svg',
                                     props: {
+                                        width: 24,
+                                        height: 28,
                                         style: {
-                                            display: 'flex',
                                             position: 'absolute',
-                                            left: '-14px',
-                                            bottom: '16px',
-                                            width: '24px',
-                                            height: '24px',
-                                            background: '#2B2D31',
-                                            borderRadius: '4px',
-                                            transform: 'rotate(45deg)',
+                                            left: -14,
+                                            bottom: 20,
                                         },
+                                        children: [
+                                            {
+                                                type: 'path',
+                                                props: {
+                                                    d: "M22 0 C10 2 4 12 0 26 C10 20 16 16 22 12 Z",
+                                                    fill: '#2B2D31',
+                                                },
+                                            },
+                                        ],
                                     },
                                 },
                                 // Username
@@ -437,13 +513,13 @@ export async function generateQuote({ text, username, avatar, color }) {
                                             fontSize: USERNAME_FONT_SIZE,
                                             fontWeight: 700,
                                             color: color,
-                                            marginBottom: '6px',
+                                            marginBottom: '10px',
                                             fontFamily: '"Noto Sans", "Roboto", sans-serif',
                                         },
                                         children: username,
                                     },
                                 },
-                                // Message text (Satori handles wrapping)
+                                // Message
                                 messageNode,
                                 // Truncation notice
                                 ...(isTruncated ? [{
@@ -451,9 +527,9 @@ export async function generateQuote({ text, username, avatar, color }) {
                                     props: {
                                         style: {
                                             display: 'flex',
-                                            fontSize: '14px',
+                                            fontSize: 14,
                                             color: '#666666',
-                                            marginTop: '4px',
+                                            marginTop: 4,
                                             fontFamily: '"Roboto", "Noto Sans", sans-serif',
                                         },
                                         children: '... (truncated)',
@@ -467,12 +543,14 @@ export async function generateQuote({ text, username, avatar, color }) {
         },
         {
             width: IMAGE_WIDTH,
-            height: 200, // Satori will auto-expand
+            height: canvasHeight,
             fonts: allFonts,
         }
     );
 
-    // Render to PNG
+    // ================================
+    // RENDER SVG TO PNG
+    // ================================
     const resvg = new Resvg(svg, {
         fitTo: {
             mode: 'width',
@@ -492,7 +570,4 @@ export async function generateQuote({ text, username, avatar, color }) {
     const pngData = resvg.render();
     return pngData.asPng();
 }
-
-
-
 
