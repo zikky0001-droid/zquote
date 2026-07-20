@@ -216,7 +216,7 @@ function parseEmojis(text) {
 }
 
 // ================================
-// ADAPTIVE FONT SIZING
+// ADAPTIVE FONT SIZING (FIXED - No document)
 // ================================
 function calculateOptimalFontSize(text, maxWidth, maxHeight) {
     // Start with largest font size
@@ -225,14 +225,10 @@ function calculateOptimalFontSize(text, maxWidth, maxHeight) {
     let textHeight = 0;
     let textWidth = 0;
 
-    // Create temporary canvas for measurement
-    const tempCanvas = document?.createElement?.('canvas');
-    const tempCtx = tempCanvas?.getContext?.('2d');
-
-    // Use a simple measurement approach for server-side
-    function measureText(text, size) {
-        // Rough estimate: average character width ~ size * 0.6
-        return text.length * size * 0.55;
+    // Server-side text measurement (approximate)
+    function measureTextWidth(str, size) {
+        // Average character width ~ size * 0.55 for most fonts
+        return str.length * size * 0.55;
     }
 
     while (fontSize >= MIN_MESSAGE_FONT_SIZE) {
@@ -257,7 +253,7 @@ function calculateOptimalFontSize(text, maxWidth, maxHeight) {
 
         // Calculate total text height
         textHeight = lines.length * lineHeight;
-        textWidth = Math.max(...lines.map(line => line.length * fontSize * 0.55));
+        textWidth = Math.max(...lines.map(line => measureTextWidth(line, fontSize)));
 
         // Check if text fits
         if (textHeight <= maxHeight && textWidth <= maxWidth) {
@@ -269,6 +265,9 @@ function calculateOptimalFontSize(text, maxWidth, maxHeight) {
     }
 
     // If still doesn't fit at minimum size, truncate
+    let truncated = false;
+    let finalText = text;
+
     if (fontSize <= MIN_MESSAGE_FONT_SIZE && textHeight > maxHeight) {
         // Calculate how many lines fit
         const lineHeight = MIN_MESSAGE_FONT_SIZE * LINE_HEIGHT_RATIO;
@@ -277,14 +276,15 @@ function calculateOptimalFontSize(text, maxWidth, maxHeight) {
         const maxChars = maxLines * maxCharsPerLine;
         
         // Truncate text
-        if (text.length > maxChars) {
-            text = text.substring(0, maxChars - 3) + '...';
+        if (finalText.length > maxChars) {
+            finalText = finalText.substring(0, maxChars - 3) + '...';
+            truncated = true;
         }
         
-        // Recalculate lines
+        // Recalculate lines with truncated text
         lines = [];
         let currentLine = '';
-        const words = text.split(' ');
+        const words = finalText.split(' ');
         for (const word of words) {
             const testLine = currentLine + word + ' ';
             if (testLine.length > maxCharsPerLine && currentLine !== '') {
@@ -300,7 +300,8 @@ function calculateOptimalFontSize(text, maxWidth, maxHeight) {
     return {
         fontSize: fontSize,
         lines: lines,
-        truncated: text.length > 0 && text.endsWith('...')
+        truncated: truncated,
+        finalText: finalText
     };
 }
 
@@ -403,7 +404,7 @@ async function buildMessageNode(text, fontSize) {
 }
 
 // ================================
-// GENERATE QUOTE (LARGER SIZE + ADAPTIVE FONT)
+// GENERATE QUOTE
 // ================================
 export async function generateQuote({ text, username, avatar, color }) {
     // ================================
@@ -419,9 +420,9 @@ export async function generateQuote({ text, username, avatar, color }) {
     // STEP 2: CALCULATE ADAPTIVE FONT SIZE
     // ================================
     const maxTextWidth = MAX_BUBBLE_WIDTH - BUBBLE_PADDING * 2 - 10;
-    const maxTextHeight = 600; // Max height for text area
+    const maxTextHeight = 600;
     
-    const { fontSize, lines, truncated } = calculateOptimalFontSize(
+    const { fontSize, lines, truncated, finalText } = calculateOptimalFontSize(
         processedText,
         maxTextWidth,
         maxTextHeight
@@ -442,7 +443,7 @@ export async function generateQuote({ text, username, avatar, color }) {
     // ================================
     // STEP 4: BUILD MESSAGE NODE
     // ================================
-    const messageNode = await buildMessageNode(processedText, fontSize);
+    const messageNode = await buildMessageNode(finalText, fontSize);
 
     // ================================
     // STEP 5: GENERATE SVG
@@ -611,9 +612,5 @@ export async function generateQuote({ text, username, avatar, color }) {
     const pngData = resvg.render();
     return pngData.asPng();
 }
-
-
-
-
 
 
