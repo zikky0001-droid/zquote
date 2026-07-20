@@ -1,6 +1,6 @@
 /**
  * Quote Renderer - SVG to PNG
- * Simple fixes: Avatar position, tail shape, padding, sizing
+ * Visual improvements: avatar, tail, fit-content, padding, height estimation
  */
 
 import fs from 'fs';
@@ -26,14 +26,14 @@ if (!fs.existsSync(EMOJI_CACHE_DIR)) {
 }
 
 // ================================
-// CONSTANTS (ADJUSTED)
+// CONSTANTS (KEEP PROPORTIONS)
 // ================================
 const IMAGE_WIDTH = 900;
 const AVATAR_SIZE = 80;
 const USERNAME_FONT_SIZE = 24;
 const MESSAGE_FONT_SIZE = 32;
-const BUBBLE_PADDING_TOP = 18; 
-const BUBBLE_PADDING_BOTTOM = 18; 
+const BUBBLE_PADDING_TOP = 18;
+const BUBBLE_PADDING_BOTTOM = 18;
 const BUBBLE_PADDING_LEFT = 24;
 const BUBBLE_PADDING_RIGHT = 24;
 const BUBBLE_RADIUS = 38;
@@ -334,7 +334,7 @@ async function buildMessageNode(text, fontSize) {
 }
 
 // ================================
-// CALCULATE HEIGHT
+// CALCULATE HEIGHT (FIXED: Better long word handling)
 // ================================
 function calculateHeight(text, username) {
     const lineHeight = MESSAGE_FONT_SIZE * 1.4;
@@ -345,7 +345,19 @@ function calculateHeight(text, username) {
     let currentLineLength = 0;
     
     for (const word of words) {
-        const wordLength = word.length;
+        let wordLength = word.length;
+        
+        // ✅ IMPROVEMENT 6: Handle long words (URLs, etc.)
+        if (wordLength > charsPerLine) {
+            lines += Math.floor(wordLength / charsPerLine);
+            wordLength = wordLength % charsPerLine;
+            if (wordLength === 0) {
+                // Exactly fits, no extra line needed
+                continue;
+            }
+            currentLineLength = 0;
+        }
+        
         if (currentLineLength + wordLength + 1 > charsPerLine) {
             lines++;
             currentLineLength = wordLength;
@@ -362,7 +374,9 @@ function calculateHeight(text, username) {
     const bubbleHeight = usernameHeight + messageHeight + paddingTotal;
     
     const finalBubbleHeight = Math.min(Math.max(bubbleHeight, MIN_HEIGHT), MAX_HEIGHT);
-    const canvasHeight = finalBubbleHeight + 60;
+    
+    // ✅ IMPROVEMENT 4: Reduce canvas height padding (60 → 28)
+    const canvasHeight = finalBubbleHeight + 28;
     
     console.log(`[RENDERER] Text: ${text.length} chars, ${estimatedLines} lines, height: ${canvasHeight}px`);
     
@@ -382,7 +396,7 @@ function truncateText(text, maxLength = MAX_CHARS) {
 }
 
 // ================================
-// GENERATE QUOTE (SIMPLE FIXES)
+// GENERATE QUOTE
 // ================================
 export async function generateQuote({ text, username, avatar, color }) {
     const finalText = truncateText(text);
@@ -402,14 +416,15 @@ export async function generateQuote({ text, username, avatar, color }) {
                     display: 'flex',
                     alignItems: 'flex-end',
                     gap: '18px',
-                    padding: '20px',
+                    // ✅ IMPROVEMENT 5: Reduce outer padding (20px → 14px)
+                    padding: '14px',
                     background: 'transparent',
                     fontFamily: '"Roboto", "Noto Sans", "Noto Color Emoji", sans-serif',
                     width: IMAGE_WIDTH,
                 },
                 children: [
                     // ================================
-                    // AVATAR (FIX 1: Raised upward)
+                    // AVATAR (✅ IMPROVEMENT 1: marginBottom 10 → 8)
                     // ================================
                     {
                         type: 'div',
@@ -423,7 +438,7 @@ export async function generateQuote({ text, username, avatar, color }) {
                                 flexShrink: 0,
                                 boxShadow: '0 0 0 4px rgba(255,255,255,0.08)',
                                 alignSelf: 'flex-end',
-                                marginBottom: 10, // ← Raises avatar upward
+                                marginBottom: 8,
                             },
                             children: avatar && avatar !== 'default' ? [
                                 {
@@ -461,7 +476,7 @@ export async function generateQuote({ text, username, avatar, color }) {
                         },
                     },
                     // ================================
-                    // BUBBLE (FIX 3: Reduced padding)
+                    // BUBBLE (✅ IMPROVEMENT 3: fit-content)
                     // ================================
                     {
                         type: 'div',
@@ -476,18 +491,20 @@ export async function generateQuote({ text, username, avatar, color }) {
                                 paddingRight: BUBBLE_PADDING_RIGHT,
                                 borderRadius: BUBBLE_RADIUS,
                                 position: 'relative',
+                                width: 'fit-content',
+                                minWidth: 0,
                                 maxWidth: MAX_BUBBLE_WIDTH,
                                 boxShadow: '0 6px 20px rgba(0,0,0,0.25)',
-                                alignSelf: 'flex-start', // ← Shrinks to content
+                                alignSelf: 'flex-start',
                             },
                             children: [
                                 // ================================
-                                // TAIL (FIX 2: Flatter path - Telegram style)
+                                // TAIL (✅ IMPROVEMENT 2: Smoother path)
                                 // ================================
                                 {
                                     type: 'svg',
                                     props: {
-                                        width: 22,
+                                        width: 24,
                                         height: 24,
                                         style: {
                                             position: 'absolute',
@@ -498,7 +515,7 @@ export async function generateQuote({ text, username, avatar, color }) {
                                             {
                                                 type: 'path',
                                                 props: {
-                                                    d: "M18 2 C10 4 4 10 0 18 C10 15 16 11 18 8 Z",
+                                                    d: "M22 0 C13 2 6 9 2 22 C12 18 18 14 22 9 Z",
                                                     fill: '#2B2D31',
                                                 },
                                             },
@@ -571,6 +588,9 @@ export async function generateQuote({ text, username, avatar, color }) {
     const pngData = resvg.render();
     return pngData.asPng();
 }
+
+
+
 
 
 
