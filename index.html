@@ -335,6 +335,11 @@
             animation: pulse 2s infinite;
         }
 
+        .result-status .expiry {
+            color: #5a5f6e;
+            font-size: 12px;
+        }
+
         @keyframes pulse {
             0%, 100% { opacity: 1; }
             50% { opacity: 0.3; }
@@ -606,6 +611,7 @@
                 <div class="result-status">
                     <span class="dot"></span>
                     <span id="statusMessage">Quote generated successfully!</span>
+                    <span class="expiry" id="expiryText">Expires in 90s</span>
                 </div>
                 <div class="result-url">
                     <span>🔗</span>
@@ -639,7 +645,7 @@
         ================================ -->
         <div class="footer">
             <span>© 2026 <a href="#">DEV ZIKKY TECH</a></span>
-            <span>Images expire in <strong>3 minutes</strong></span>
+            <span>Images expire in <strong>90 seconds</strong></span>
         </div>
 
     </div>
@@ -662,6 +668,7 @@
         const resultImage = document.getElementById('resultImage');
         const resultUrl = document.getElementById('resultUrl');
         const statusMessage = document.getElementById('statusMessage');
+        const expiryText = document.getElementById('expiryText');
         const errorMessage = document.getElementById('errorMessage');
         const loadingIndicator = document.getElementById('loadingIndicator');
         const copyBtn = document.getElementById('copyBtn');
@@ -741,13 +748,18 @@
 
                 const data = await response.json();
 
+                // Handle new pretty JSON structure
+                const imageUrl = data.data?.image?.url || data.image;
+                const expiresIn = data.data?.image?.expiresIn || 90;
+
                 if (data.success) {
                     // Show result
-                    resultImage.src = data.image;
-                    resultUrl.textContent = data.image;
+                    resultImage.src = imageUrl;
+                    resultUrl.textContent = imageUrl;
                     resultContainer.style.display = 'block';
                     statusMessage.textContent = '✅ Quote generated successfully!';
                     statusMessage.style.color = '#81C784';
+                    expiryText.textContent = `Expires in ${expiresIn}s`;
                     errorMessage.style.display = 'none';
                 } else {
                     // Show error
@@ -777,7 +789,6 @@
                     copyBtn.textContent = '✅';
                     setTimeout(() => { copyBtn.textContent = '📋'; }, 2000);
                 } catch {
-                    // Fallback
                     const range = document.createRange();
                     const selection = window.getSelection();
                     range.selectNodeContents(resultUrl);
@@ -807,5 +818,8 @@
 
 </body>
 </html>
+
+
+
 
 

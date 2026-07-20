@@ -55,10 +55,13 @@ app.get('/', (req, res) => {
 // HEALTH CHECK
 // ================================
 app.get('/health', (req, res) => {
+    const baseUrl = process.env.BASE_URL || `http://localhost:${PORT}`;
     res.json({ 
         status: 'ok', 
         timestamp: new Date().toISOString(),
-        baseUrl: process.env.BASE_URL || `http://localhost:${PORT}`
+        baseUrl: baseUrl,
+        uptime: process.uptime(),
+        version: '1.0.0'
     });
 });
 
@@ -71,9 +74,16 @@ startCleanup();
 // START SERVER
 // ================================
 app.listen(PORT, () => {
-    console.log(`🚀 Quote API running on port ${PORT}`);
-    console.log(`📍 http://localhost:${PORT}`);
-    console.log(`🔗 BASE_URL: ${process.env.BASE_URL || 'http://localhost:' + PORT}`);
+    const baseUrl = process.env.BASE_URL || `http://localhost:${PORT}`;
+    console.log(`\n${'='.repeat(50)}`);
+    console.log(`🚀 DEV ZIKKY Quote API`);
+    console.log(`${'='.repeat(50)}`);
+    console.log(`📍 Server running on port: ${PORT}`);
+    console.log(`🔗 Base URL: ${baseUrl}`);
+    console.log(`📡 API Endpoint: ${baseUrl}/api/quote`);
+    console.log(`🖼️  Landing Page: ${baseUrl}/`);
+    console.log(`💚 Health Check: ${baseUrl}/health`);
+    console.log(`${'='.repeat(50)}\n`);
 });
 
 

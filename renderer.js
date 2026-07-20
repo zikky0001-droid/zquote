@@ -1,7 +1,8 @@
 /**
  * Quote Renderer - SVG to PNG
- * Production-ready with Twemoji support
- * Emojis are pre-cached for fast rendering
+ * Uses Satori + Resvg for high-quality rendering
+ * Loads ALL available fonts from /fonts folder
+ * LARGER SIZE with ADAPTIVE FONT SIZING
  */
 
 import fs from 'fs';
@@ -17,37 +18,91 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 // ================================
-// CONSTANTS
+// FONTS DIRECTORY
 // ================================
 const FONTS_DIR = path.join(__dirname, 'fonts');
 const EMOJI_CACHE_DIR = path.join(__dirname, 'emoji-cache');
-const TWEMOJI_CDN = 'https://cdn.jsdelivr.net/gh/jdecked/twemoji/assets/svg';
 
-// Create directories
+// Create emoji cache directory
 if (!fs.existsSync(EMOJI_CACHE_DIR)) {
     fs.mkdirSync(EMOJI_CACHE_DIR, { recursive: true });
 }
 
 // ================================
-// LOAD FONTS
+// SIZE SETTINGS
 // ================================
-function loadAllFonts() {
+const IMAGE_WIDTH = 900;
+const AVATAR_SIZE = 100;
+const USERNAME_FONT_SIZE = 32;
+const BUBBLE_PADDING = 30;
+const BUBBLE_RADIUS = 40;
+const MAX_BUBBLE_WIDTH = 680;
+const MIN_BUBBLE_WIDTH = 300;
+const MAX_HEIGHT = 800;
+const MIN_HEIGHT = 200;
+const MAX_CHARS = 1000;
+
+// Font size ranges for adaptive sizing
+const MAX_MESSAGE_FONT_SIZE = 42;
+const MIN_MESSAGE_FONT_SIZE = 16;
+const LINE_HEIGHT_RATIO = 1.4;
+
+// ================================
+// LOAD ALL FONTS FROM FONTS FOLDER
+// ================================
+function loadSpecificFonts() {
     const fonts = [];
-    
+
     if (!fs.existsSync(FONTS_DIR)) {
-        console.warn('[FONTS] Fonts directory not found');
+        console.warn('[FONTS] Fonts directory not found:', FONTS_DIR);
         return fonts;
     }
 
-    const fontFiles = fs.readdirSync(FONTS_DIR).filter(file => 
-        file.endsWith('.ttf') || file.endsWith('.otf')
+    const priorityFiles = [
+        'Roboto-Regular.ttf',
+        'Roboto-Bold.ttf',
+        'NotoSans-Regular.ttf',
+        'NotoColorEmoji-Regular.ttf'
+    ];
+
+    for (const file of priorityFiles) {
+        const filepath = path.join(FONTS_DIR, file);
+        if (fs.existsSync(filepath)) {
+            try {
+                const data = fs.readFileSync(filepath);
+                let name = file.replace(/\.(ttf|otf|ttc)$/, '');
+                let weight = 400;
+                let style = 'normal';
+
+                if (name.includes('Bold')) weight = 700;
+                if (name.includes('Italic')) style = 'italic';
+
+                if (file.includes('NotoSans')) name = 'Noto Sans';
+                if (file.includes('NotoColorEmoji')) name = 'Noto Color Emoji';
+
+                fonts.push({
+                    name: name,
+                    data: data,
+                    weight: weight,
+                    style: style,
+                });
+                console.log(`[FONTS] ✓ Priority loaded: ${file}`);
+            } catch (error) {
+                console.error(`[FONTS] Failed to load priority font: ${file}`, error.message);
+            }
+        }
+    }
+
+    const allFiles = fs.readdirSync(FONTS_DIR).filter(file => 
+        (file.endsWith('.ttf') || file.endsWith('.otf')) && 
+        !priorityFiles.includes(file) &&
+        !file.includes('Noto')
     );
 
-    for (const file of fontFiles) {
+    for (const file of allFiles) {
         try {
             const filepath = path.join(FONTS_DIR, file);
             const data = fs.readFileSync(filepath);
-            
             let name = 'Roboto';
             let weight = 400;
             let style = 'normal';
@@ -64,8 +119,6 @@ function loadAllFonts() {
             if (file.includes('Italic')) style = 'italic';
             if (file.includes('Condensed')) name = 'Roboto Condensed';
             if (file.includes('SemiCondensed')) name = 'Roboto SemiCondensed';
-            if (file.includes('NotoSans')) name = 'Noto Sans';
-            if (file.includes('NotoColorEmoji')) name = 'Noto Color Emoji';
 
             fonts.push({
                 name: name,
@@ -73,6 +126,7 @@ function loadAllFonts() {
                 weight: weight,
                 style: style,
             });
+            console.log(`[FONTS] ✓ Loaded: ${file}`);
         } catch (error) {
             console.error(`[FONTS] Failed to load: ${file}`, error.message);
         }
@@ -81,26 +135,24 @@ function loadAllFonts() {
     return fonts;
 }
 
-const allFonts = loadAllFonts();
+const allFonts = loadSpecificFonts();
 console.log(`[FONTS] Total fonts loaded: ${allFonts.length}`);
 
 // ================================
 // EMOJI CACHE
 // ================================
 const memoryCache = new Map();
+const TWEMOJI_CDN = 'https://cdn.jsdelivr.net/gh/jdecked/twemoji/assets/svg';
 
 async function getEmojiBase64SVG(emoji) {
-    // Check memory cache
     if (memoryCache.has(emoji)) {
         return memoryCache.get(emoji);
     }
 
-    // Get code point (keep -fe0f as-is)
     const codePoint = twemoji.convert.toCodePoint(emoji);
     const filename = `${codePoint}.svg`;
     const filepath = path.join(EMOJI_CACHE_DIR, filename);
 
-    // Check disk cache
     if (fs.existsSync(filepath)) {
         const svgData = fs.readFileSync(filepath, 'utf8');
         const base64 = Buffer.from(svgData).toString('base64');
@@ -109,7 +161,6 @@ async function getEmojiBase64SVG(emoji) {
         return dataUri;
     }
 
-    // Download from CDN
     try {
         const svgUrl = `${TWEMOJI_CDN}/${codePoint}.svg`;
         const response = await axios.get(svgUrl, {
@@ -165,19 +216,106 @@ function parseEmojis(text) {
 }
 
 // ================================
-// BUILD MESSAGE NODE
+// ADAPTIVE FONT SIZING
 // ================================
-async function buildMessageNode(text, fontSize = 28) {
+function calculateOptimalFontSize(text, maxWidth, maxHeight) {
+    // Start with largest font size
+    let fontSize = MAX_MESSAGE_FONT_SIZE;
+    let lines = [];
+    let textHeight = 0;
+    let textWidth = 0;
+
+    // Create temporary canvas for measurement
+    const tempCanvas = document?.createElement?.('canvas');
+    const tempCtx = tempCanvas?.getContext?.('2d');
+
+    // Use a simple measurement approach for server-side
+    function measureText(text, size) {
+        // Rough estimate: average character width ~ size * 0.6
+        return text.length * size * 0.55;
+    }
+
+    while (fontSize >= MIN_MESSAGE_FONT_SIZE) {
+        const lineHeight = fontSize * LINE_HEIGHT_RATIO;
+        const maxCharsPerLine = Math.floor(maxWidth / (fontSize * 0.55));
+        
+        // Split text into lines
+        lines = [];
+        let currentLine = '';
+        const words = text.split(' ');
+        
+        for (const word of words) {
+            const testLine = currentLine + word + ' ';
+            if (testLine.length > maxCharsPerLine && currentLine !== '') {
+                lines.push(currentLine.trim());
+                currentLine = word + ' ';
+            } else {
+                currentLine = testLine;
+            }
+        }
+        if (currentLine) lines.push(currentLine.trim());
+
+        // Calculate total text height
+        textHeight = lines.length * lineHeight;
+        textWidth = Math.max(...lines.map(line => line.length * fontSize * 0.55));
+
+        // Check if text fits
+        if (textHeight <= maxHeight && textWidth <= maxWidth) {
+            break;
+        }
+
+        // Reduce font size
+        fontSize -= 2;
+    }
+
+    // If still doesn't fit at minimum size, truncate
+    if (fontSize <= MIN_MESSAGE_FONT_SIZE && textHeight > maxHeight) {
+        // Calculate how many lines fit
+        const lineHeight = MIN_MESSAGE_FONT_SIZE * LINE_HEIGHT_RATIO;
+        const maxLines = Math.floor(maxHeight / lineHeight);
+        const maxCharsPerLine = Math.floor(maxWidth / (MIN_MESSAGE_FONT_SIZE * 0.55));
+        const maxChars = maxLines * maxCharsPerLine;
+        
+        // Truncate text
+        if (text.length > maxChars) {
+            text = text.substring(0, maxChars - 3) + '...';
+        }
+        
+        // Recalculate lines
+        lines = [];
+        let currentLine = '';
+        const words = text.split(' ');
+        for (const word of words) {
+            const testLine = currentLine + word + ' ';
+            if (testLine.length > maxCharsPerLine && currentLine !== '') {
+                lines.push(currentLine.trim());
+                currentLine = word + ' ';
+            } else {
+                currentLine = testLine;
+            }
+        }
+        if (currentLine) lines.push(currentLine.trim());
+    }
+
+    return {
+        fontSize: fontSize,
+        lines: lines,
+        truncated: text.length > 0 && text.endsWith('...')
+    };
+}
+
+// ================================
+// BUILD MESSAGE NODE (WITH EMOJIS & ADAPTIVE FONT)
+// ================================
+async function buildMessageNode(text, fontSize) {
     const parts = parseEmojis(text);
     const children = [];
     let textBuffer = '';
 
-    // Group consecutive text fragments together
     for (const part of parts) {
         if (part.type === 'text') {
             textBuffer += part.value;
         } else {
-            // Flush text buffer
             if (textBuffer) {
                 children.push({
                     type: 'div',
@@ -195,23 +333,22 @@ async function buildMessageNode(text, fontSize = 28) {
                 textBuffer = '';
             }
 
-            // Add emoji
             const svg = await getEmojiBase64SVG(part.value);
             if (svg) {
+                const emojiSize = fontSize + 4;
                 children.push({
                     type: 'img',
                     props: {
                         src: svg,
                         style: {
                             display: 'flex',
-                            width: fontSize + 4,
-                            height: fontSize + 4,
+                            width: emojiSize,
+                            height: emojiSize,
                             flexShrink: 0,
                         },
                     },
                 });
             } else {
-                // Fallback: render emoji as text
                 children.push({
                     type: 'div',
                     props: {
@@ -229,7 +366,6 @@ async function buildMessageNode(text, fontSize = 28) {
         }
     }
 
-    // Flush remaining text
     if (textBuffer) {
         children.push({
             type: 'div',
@@ -254,11 +390,11 @@ async function buildMessageNode(text, fontSize = 28) {
                 flexDirection: 'row',
                 flexWrap: 'wrap',
                 alignItems: 'center',
-                gap: '2px',
+                gap: '3px',
                 fontSize: fontSize,
                 color: '#FFFFFF',
                 fontWeight: 400,
-                lineHeight: 1.3,
+                lineHeight: LINE_HEIGHT_RATIO,
                 fontFamily: '"Roboto", "Noto Sans", sans-serif',
             },
             children: children,
@@ -267,17 +403,50 @@ async function buildMessageNode(text, fontSize = 28) {
 }
 
 // ================================
-// GENERATE QUOTE
+// GENERATE QUOTE (LARGER SIZE + ADAPTIVE FONT)
 // ================================
 export async function generateQuote({ text, username, avatar, color }) {
-    // Calculate height based on text length (rough estimate)
-    const textLength = text.length;
-    const baseHeight = 150;
-    const extraHeight = Math.floor(textLength / 15) * 28;
-    const height = Math.min(Math.max(baseHeight + extraHeight, 150), 500);
+    // ================================
+    // STEP 1: CHARACTER LIMIT (1000)
+    // ================================
+    let processedText = text;
+    if (processedText.length > MAX_CHARS) {
+        processedText = processedText.substring(0, MAX_CHARS - 3) + '...';
+        console.log(`[RENDERER] Text truncated from ${text.length} to ${processedText.length} chars`);
+    }
 
-    const messageNode = await buildMessageNode(text, 28);
+    // ================================
+    // STEP 2: CALCULATE ADAPTIVE FONT SIZE
+    // ================================
+    const maxTextWidth = MAX_BUBBLE_WIDTH - BUBBLE_PADDING * 2 - 10;
+    const maxTextHeight = 600; // Max height for text area
+    
+    const { fontSize, lines, truncated } = calculateOptimalFontSize(
+        processedText,
+        maxTextWidth,
+        maxTextHeight
+    );
 
+    console.log(`[RENDERER] Font size: ${fontSize}px, Lines: ${lines.length}, Truncated: ${truncated}`);
+
+    // ================================
+    // STEP 3: CALCULATE HEIGHT
+    // ================================
+    const lineHeight = fontSize * LINE_HEIGHT_RATIO;
+    const textHeight = lines.length * lineHeight;
+    const usernameHeight = USERNAME_FONT_SIZE + 14;
+    const paddingTotal = BUBBLE_PADDING * 2 + 10;
+    const calculatedHeight = usernameHeight + textHeight + paddingTotal;
+    const finalHeight = Math.min(Math.max(calculatedHeight, MIN_HEIGHT), MAX_HEIGHT);
+
+    // ================================
+    // STEP 4: BUILD MESSAGE NODE
+    // ================================
+    const messageNode = await buildMessageNode(processedText, fontSize);
+
+    // ================================
+    // STEP 5: GENERATE SVG
+    // ================================
     const svg = await satori(
         {
             type: 'div',
@@ -285,9 +454,10 @@ export async function generateQuote({ text, username, avatar, color }) {
                 style: {
                     display: 'flex',
                     alignItems: 'flex-end',
-                    gap: '18px',
-                    padding: '20px',
+                    gap: '24px',
+                    padding: '30px',
                     background: 'transparent',
+                    fontFamily: '"Roboto", "Noto Sans", "Noto Color Emoji", sans-serif',
                 },
                 children: [
                     // ================================
@@ -298,12 +468,12 @@ export async function generateQuote({ text, username, avatar, color }) {
                         props: {
                             style: {
                                 display: 'flex',
-                                width: '72px',
-                                height: '72px',
+                                width: AVATAR_SIZE,
+                                height: AVATAR_SIZE,
                                 borderRadius: '50%',
                                 overflow: 'hidden',
                                 flexShrink: 0,
-                                boxShadow: '0 0 0 4px rgba(255,255,255,0.08)',
+                                boxShadow: '0 0 0 6px rgba(255,255,255,0.08)',
                             },
                             children: avatar && avatar !== 'default' ? [
                                 {
@@ -329,8 +499,8 @@ export async function generateQuote({ text, username, avatar, color }) {
                                             width: '100%',
                                             height: '100%',
                                             background: '#3A3A3E',
-                                            fontSize: '28px',
-                                            fontWeight: 700,
+                                            fontSize: '40px',
+                                            fontWeight: 'bold',
                                             color: '#FFFFFF',
                                             fontFamily: '"Noto Sans", "Roboto", sans-serif',
                                         },
@@ -350,12 +520,13 @@ export async function generateQuote({ text, username, avatar, color }) {
                                 display: 'flex',
                                 flexDirection: 'column',
                                 background: '#2B2D31',
-                                padding: '22px 28px',
-                                borderRadius: '32px',
+                                padding: `${BUBBLE_PADDING}px ${BUBBLE_PADDING + 8}px`,
+                                borderRadius: BUBBLE_RADIUS,
                                 position: 'relative',
-                                maxWidth: '470px',
-                                minWidth: '200px',
-                                boxShadow: '0 8px 30px rgba(0,0,0,0.35)',
+                                maxWidth: MAX_BUBBLE_WIDTH,
+                                minWidth: MIN_BUBBLE_WIDTH,
+                                boxShadow: '0 12px 40px rgba(0,0,0,0.35)',
+                                fontFamily: '"Roboto", "Noto Sans", "Noto Color Emoji", sans-serif',
                             },
                             children: [
                                 // Tail
@@ -365,12 +536,12 @@ export async function generateQuote({ text, username, avatar, color }) {
                                         style: {
                                             display: 'flex',
                                             position: 'absolute',
-                                            left: '-18px',
-                                            bottom: '14px',
-                                            width: '28px',
-                                            height: '28px',
+                                            left: '-24px',
+                                            bottom: '18px',
+                                            width: '38px',
+                                            height: '38px',
                                             background: '#2B2D31',
-                                            clipPath: 'path("M28 0C16 8 8 16 0 28C12 24 20 22 28 18Z")',
+                                            clipPath: 'path("M38 0C22 10 10 22 0 38C16 32 26 28 38 24Z")',
                                         },
                                     },
                                 },
@@ -380,7 +551,7 @@ export async function generateQuote({ text, username, avatar, color }) {
                                     props: {
                                         style: {
                                             display: 'flex',
-                                            fontSize: '21px',
+                                            fontSize: USERNAME_FONT_SIZE,
                                             fontWeight: 700,
                                             color: color,
                                             marginBottom: '12px',
@@ -389,8 +560,22 @@ export async function generateQuote({ text, username, avatar, color }) {
                                         children: username,
                                     },
                                 },
-                                // Message
+                                // Message text
                                 messageNode,
+                                // Truncation notice
+                                ...(truncated ? [{
+                                    type: 'div',
+                                    props: {
+                                        style: {
+                                            display: 'flex',
+                                            fontSize: fontSize * 0.7,
+                                            color: '#888888',
+                                            marginTop: '6px',
+                                            fontFamily: '"Roboto", "Noto Sans", sans-serif',
+                                        },
+                                        children: '... (truncated)',
+                                    },
+                                }] : []),
                             ],
                         },
                     },
@@ -398,17 +583,19 @@ export async function generateQuote({ text, username, avatar, color }) {
             },
         },
         {
-            width: 600,
-            height: height,
+            width: IMAGE_WIDTH,
+            height: finalHeight,
             fonts: allFonts,
         }
     );
 
-    // Render to PNG
+    // ================================
+    // STEP 6: RENDER SVG TO PNG
+    // ================================
     const resvg = new Resvg(svg, {
         fitTo: {
             mode: 'width',
-            value: 600,
+            value: IMAGE_WIDTH,
         },
         font: {
             loadSystemFonts: false,
@@ -424,3 +611,9 @@ export async function generateQuote({ text, username, avatar, color }) {
     const pngData = resvg.render();
     return pngData.asPng();
 }
+
+
+
+
+
+

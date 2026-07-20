@@ -1,5 +1,5 @@
 {
-  "name": "zquote-api",
+  "name": "zquote",
   "version": "1.0.0",
   "description": "Telegram-style quote image generator API",
   "main": "index.js",

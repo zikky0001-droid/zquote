@@ -6,9 +6,31 @@
 import express from 'express';
 import axios from 'axios';
 import { generateQuote } from './renderer.js';
-import { saveImage, getImageUrl } from './storage.js';
+import { saveImage, getImageUrl, getImageMetadata } from './storage.js';
 
 const router = express.Router();
+
+// ================================
+// TIME HELPERS
+// ================================
+function getTimeInfo() {
+    const now = new Date();
+    const utcTime = now.toISOString();
+    const localTime = new Date(now.getTime() + (60 * 60 * 1000)).toISOString().replace('Z', '+01:00');
+    
+    return {
+        utc: utcTime,
+        local: localTime,
+        timestamp: now.getTime()
+    };
+}
+
+function formatExpiryTime(expiresAt) {
+    const date = new Date(expiresAt);
+    const utc = date.toISOString();
+    const local = new Date(date.getTime() + (60 * 60 * 1000)).toISOString().replace('Z', '+01:00');
+    return { utc, local };
+}
 
 router.post('/', async (req, res) => {
     try {
@@ -18,19 +40,21 @@ router.post('/', async (req, res) => {
         if (!text || !username) {
             return res.status(400).json({
                 success: false,
-                error: 'Missing required fields: text, username'
+                error: 'Missing required fields: text, username',
+                timestamp: getTimeInfo()
             });
         }
 
-        // Validate text length (max 500 chars)
-        if (text.length > 500) {
+        // Validate text length (max 1000 chars - updated)
+        if (text.length > 1000) {
             return res.status(400).json({
                 success: false,
-                error: 'Text exceeds 500 character limit'
+                error: `Text exceeds 1000 character limit (${text.length} chars)`,
+                timestamp: getTimeInfo()
             });
         }
 
-        // ✅ Validate avatar URL if provided
+        // Validate avatar URL if provided
         if (avatar && avatar !== 'default' && avatar !== '') {
             try {
                 await axios.head(avatar, { timeout: 5000 });
@@ -40,7 +64,6 @@ router.post('/', async (req, res) => {
             }
         }
 
-        // If no avatar or invalid, use default
         if (!avatar || avatar === '') {
             avatar = 'default';
         }
@@ -55,28 +78,52 @@ router.post('/', async (req, res) => {
 
         // Save image to storage
         const filename = await saveImage(imageBuffer);
-
-        // Return response
+        const metadata = getImageMetadata(filename);
         const baseUrl = process.env.BASE_URL || `http://localhost:${process.env.PORT || 3000}`;
-        res.json({
+        const imageUrl = `${baseUrl}/images/${filename}`;
+
+        // ================================
+        // PRETTY PRINT JSON RESPONSE
+        // ================================
+        const response = {
             success: true,
-            expiresIn: 180,
-            image: `${baseUrl}/images/${filename}`,
-            preview: `${baseUrl}/images/${filename}`,
-            filename
-        });
+            data: {
+                image: {
+                    url: imageUrl,
+                    filename: filename,
+                    expiresIn: 90,
+                    created: metadata?.created || getTimeInfo(),
+                    expires: metadata?.expires || formatExpiryTime(Date.now() + 90000)
+                },
+                quote: {
+                    text: text,
+                    username: username,
+                    color: getUsernameColor(username),
+                    length: text.length
+                },
+                api: {
+                    version: '1.0.0',
+                    timestamp: getTimeInfo(),
+                    endpoint: '/api/quote'
+                }
+            }
+        };
+
+        // Pretty print JSON with 2-space indentation
+        res.setHeader('Content-Type', 'application/json');
+        res.json(response);
 
     } catch (error) {
         console.error('[QUOTE] Error:', error);
         res.status(500).json({
             success: false,
-            error: error.message || 'Failed to generate quote'
+            error: error.message || 'Failed to generate quote',
+            timestamp: getTimeInfo()
         });
     }
 });
 
 function getUsernameColor(username) {
-    // Consistent color based on username
     let hash = 0;
     for (let i = 0; i < username.length; i++) {
         hash = username.charCodeAt(i) + ((hash << 5) - hash);
@@ -91,4 +138,5 @@ function getUsernameColor(username) {
 }
 
 export default router;
+
 
