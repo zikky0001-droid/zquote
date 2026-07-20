@@ -45,7 +45,7 @@ router.post('/', async (req, res) => {
             });
         }
 
-        // Validate text length (max 1000 chars - updated)
+        // Validate text length
         if (text.length > 1000) {
             return res.status(400).json({
                 success: false,
@@ -109,9 +109,9 @@ router.post('/', async (req, res) => {
             }
         };
 
-        // Pretty print JSON with 2-space indentation
+        // ✅ PRETTY PRINT: 2-space indentation
         res.setHeader('Content-Type', 'application/json');
-        res.json(response);
+        res.send(JSON.stringify(response, null, 2));
 
     } catch (error) {
         console.error('[QUOTE] Error:', error);
@@ -138,5 +138,7 @@ function getUsernameColor(username) {
 }
 
 export default router;
+
+
 
 
