@@ -38,6 +38,7 @@ const BUBBLE_PADDING_LEFT = 36;     // ← Was 24
 const BUBBLE_PADDING_RIGHT = 36;    // ← Was 24
 const BUBBLE_RADIUS = 48;           // ← Was 38
 const MAX_BUBBLE_WIDTH = 850;       // ← Was 620
+const MIN_HEIGHT = 200;
 const MAX_HEIGHT = 1200;            // ← Was 800
 const MAX_CHARS = 1000; 
 const CHARS_PER_LINE = 30;  
