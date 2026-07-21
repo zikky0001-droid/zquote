@@ -491,8 +491,6 @@ export async function generateQuote({ text, username, avatar, color }) {
                                 paddingRight: BUBBLE_PADDING_RIGHT,
                                 borderRadius: BUBBLE_RADIUS,
                                 position: 'relative',
-                                width: 'fit-content',
-                                minWidth: 0,
                                 maxWidth: MAX_BUBBLE_WIDTH,
                                 boxShadow: '0 6px 20px rgba(0,0,0,0.25)',
                                 alignSelf: 'flex-start',
