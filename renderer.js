@@ -435,16 +435,16 @@ export async function generateQuote({ text, username, avatar, color }) {
 let charsPerLine = CHARS_PER_LINE;
 
 // Shrink font for longer messages
-if (finalText.length > 150) messageFontSize = 64;
-if (finalText.length > 250) messageFontSize = 58;
-if (finalText.length > 400) messageFontSize = 52;
-if (finalText.length > 600) messageFontSize = 46;
+if (finalText.length > 150) messageFontSize = 54;
+if (finalText.length > 250) messageFontSize = 42;
+if (finalText.length > 400) messageFontSize = 32;
+if (finalText.length > 600) messageFontSize = 20;
 
 // Allow more characters per line as font gets smaller
-if (messageFontSize <= 64) charsPerLine = 24;
-if (messageFontSize <= 58) charsPerLine = 27;
-if (messageFontSize <= 52) charsPerLine = 29;
-if (messageFontSize <= 46) charsPerLine = 32;
+if (messageFontSize <= 54) charsPerLine = 27;
+if (messageFontSize <= 42) charsPerLine = 39;
+if (messageFontSize <= 32) charsPerLine = 32;
+if (messageFontSize <= 20) charsPerLine = 40;
 
 const { bubbleHeight, lines } = calculateHeight(
     finalText,
