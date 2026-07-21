@@ -37,8 +37,8 @@ const BUBBLE_PADDING_BOTTOM = 22;
 const BUBBLE_PADDING_LEFT = 32;
 const BUBBLE_PADDING_RIGHT = 32;
 const BUBBLE_RADIUS = 48;  
-const MAX_BUBBLE_WIDTH = 900;  
-const MIN_BUBBLE_WIDTH = 450;   
+const MAX_BUBBLE_WIDTH = 820;  
+const MIN_BUBBLE_WIDTH = 400;   
 const MAX_CHARS = 1000;
 const CHARS_PER_LINE = 22;   
 
@@ -468,8 +468,9 @@ const messageNode = await buildMessageNode(
             props: {
                 style: {
                     display: 'flex',
-                    justifyContent: 'center',
+                    justifyContent: 'flex-start',
                     alignItems: 'center',
+                    paddingTop: 40,
                     width: IMAGE_SIZE,
                     height: IMAGE_SIZE,
                     background: 'transparent',
@@ -483,7 +484,7 @@ const messageNode = await buildMessageNode(
                                 display: 'flex',
                                 alignItems: 'flex-end',
                                 gap: GAP_BETWEEN_AVATAR_AND_BUBBLE,
-                                maxWidth: MAX_BUBBLE_WIDTH + 100,
+                                maxWidth: MAX_BUBBLE_WIDTH + 80,
                             },
                             children: [
                                 // ================================
@@ -525,8 +526,8 @@ const messageNode = await buildMessageNode(
                                                         display: 'flex',
                                                         alignItems: 'center',
                                                         justifyContent: 'center',
-                                                        width: '100%',
-                                                        height: '100%',
+                                                        width: '90%',
+                                                        height: '90%',
                                                         background: '#E5E7EB',
                                                         fontSize: '64px',
                                                         fontWeight: 'bold',
