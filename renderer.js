@@ -28,23 +28,23 @@ if (!fs.existsSync(EMOJI_CACHE_DIR)) {
 // ================================
 // CONSTANTS (FINAL - BIGGER & FILLS CANVAS)
 // ================================
-const IMAGE_SIZE = 1024;                // Square canvas for stickers
-const AVATAR_SIZE = 170;                // Bigger avatar
-const USERNAME_FONT_SIZE = 53;          // Bigger username
-const MESSAGE_FONT_SIZE = 70;           // Bigger message
-const BUBBLE_PADDING_TOP = 22;          // Tighter padding
+const IMAGE_SIZE = 1024; 
+const AVATAR_SIZE = 170;                
+const USERNAME_FONT_SIZE = 53;  
+const MESSAGE_FONT_SIZE = 70;  
+const BUBBLE_PADDING_TOP = 22;   
 const BUBBLE_PADDING_BOTTOM = 22;
 const BUBBLE_PADDING_LEFT = 32;
 const BUBBLE_PADDING_RIGHT = 32;
-const BUBBLE_RADIUS = 48;               // Rounded corners
-const MAX_BUBBLE_WIDTH = 950;           // WIDER - fills 93% of canvas
-const MIN_BUBBLE_WIDTH = 450;           // Ensures short messages look good
+const BUBBLE_RADIUS = 48;  
+const MAX_BUBBLE_WIDTH = 900;  
+const MIN_BUBBLE_WIDTH = 450;   
 const MAX_CHARS = 1000;
-const CHARS_PER_LINE = 22;              // Fewer chars per line = more lines = bigger bubble
+const CHARS_PER_LINE = 22;   
 
 // Avatar alignment
-const AVATAR_MARGIN_BOTTOM = 16;        // Aligns with bubble
-const GAP_BETWEEN_AVATAR_AND_BUBBLE = 12; // Closer together
+const AVATAR_MARGIN_BOTTOM = 16;   
+const GAP_BETWEEN_AVATAR_AND_BUBBLE = 12; 
 
 // ================================
 // TAIL SETTINGS (SHORTER, ROUNDER)
@@ -245,20 +245,29 @@ function parseEmojis(text) {
 // ================================
 // BUILD MESSAGE NODE
 // ================================
-async function buildMessageNode(text, fontSize) {
+async function buildMessageNode(
+    text,
+    fontSize,
+    charsPerLine = CHARS_PER_LINE
+) {
     if (!hasEmoji(text)) {
         return {
             type: 'div',
             props: {
                 style: {
-                    display: 'flex',
-                    fontSize: fontSize,
-                    color: COLORS.text,
-                    fontWeight: 900,
-                    lineHeight: 1.35,
-                    fontFamily: '"Roboto", "Noto Sans", sans-serif',
-                    flexWrap: 'wrap',
-                },
+    display: 'flex',
+    fontSize: fontSize,
+    color: COLORS.text,
+    fontWeight: 900,
+    lineHeight: 1.35,
+    fontFamily: '"Roboto", "Noto Sans", sans-serif',
+    flexWrap: 'wrap',
+    maxWidth:
+        (MAX_BUBBLE_WIDTH -
+            BUBBLE_PADDING_LEFT -
+            BUBBLE_PADDING_RIGHT) *
+        (charsPerLine / CHARS_PER_LINE),
+},
                 children: text,
             },
         };
@@ -352,7 +361,9 @@ async function buildMessageNode(text, fontSize) {
                 fontWeight: 900,
                 lineHeight: 1.35,
                 fontFamily: '"Roboto", "Noto Sans", sans-serif',
-                maxWidth: MAX_BUBBLE_WIDTH - BUBBLE_PADDING_LEFT - BUBBLE_PADDING_RIGHT,
+                maxWidth:
+    (charsPerLine / CHARS_PER_LINE) *
+    (MAX_BUBBLE_WIDTH - BUBBLE_PADDING_LEFT - BUBBLE_PADDING_RIGHT),
             },
             children: children,
         },
@@ -362,10 +373,14 @@ async function buildMessageNode(text, fontSize) {
 // ================================
 // CALCULATE HEIGHT (For bubble only)
 // ================================
-function calculateHeight(text, username) {
-    const lineHeight = MESSAGE_FONT_SIZE * 1.35;
-    const charsPerLine = CHARS_PER_LINE;
-    
+function calculateHeight(
+    text,
+    username,
+    fontSize = MESSAGE_FONT_SIZE,
+    charsPerLine = CHARS_PER_LINE
+) {
+    const lineHeight = fontSize * 1.35;
+
     const words = text.split(' ');
     let lines = 1;
     let currentLineLength = 0;
@@ -416,9 +431,34 @@ export async function generateQuote({ text, username, avatar, color }) {
     const finalText = truncateText(text);
     const isTruncated = finalText !== text;
     
-    const { bubbleHeight, lines } = calculateHeight(finalText, username);
-    const messageNode = await buildMessageNode(finalText, MESSAGE_FONT_SIZE);
+    let messageFontSize = MESSAGE_FONT_SIZE;
+let charsPerLine = CHARS_PER_LINE;
 
+// Shrink font for longer messages
+if (finalText.length > 150) messageFontSize = 64;
+if (finalText.length > 250) messageFontSize = 58;
+if (finalText.length > 400) messageFontSize = 52;
+if (finalText.length > 600) messageFontSize = 46;
+
+// Allow more characters per line as font gets smaller
+if (messageFontSize <= 64) charsPerLine = 24;
+if (messageFontSize <= 58) charsPerLine = 27;
+if (messageFontSize <= 52) charsPerLine = 29;
+if (messageFontSize <= 46) charsPerLine = 32;
+
+const { bubbleHeight, lines } = calculateHeight(
+    finalText,
+    username,
+    messageFontSize,
+    charsPerLine
+);
+
+const messageNode = await buildMessageNode(
+    finalText,
+    messageFontSize,
+    charsPerLine
+);
+    
     // ================================
     // GENERATE SVG - SQUARE, TRANSPARENT, CENTERED
     // ================================
