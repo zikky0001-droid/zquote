@@ -1,6 +1,6 @@
 /**
- * Quote Renderer - SVG to PNG (FAST - Using Sharp)
- * Multiple Color Themes: Purple, Yellow, Red, Blue, Green, Orange, Pink, Gold
+ * Quote Renderer - SVG to PNG (CLEAN STICKER DESIGN)
+ * Transparent background, large bubble, minimal padding
  */
 
 import fs from 'fs';
@@ -26,144 +26,37 @@ if (!fs.existsSync(EMOJI_CACHE_DIR)) {
 }
 
 // ================================
-// CONSTANTS
+// CONSTANTS (SQUARE CANVAS - TRANSPARENT)
 // ================================
-const IMAGE_WIDTH = 1800;
-const AVATAR_SIZE = 220;
-const USERNAME_FONT_SIZE = 80;
-const MESSAGE_FONT_SIZE = 100;
-const BUBBLE_PADDING_TOP = 56;
-const BUBBLE_PADDING_BOTTOM = 56;
-const BUBBLE_PADDING_LEFT = 64;
-const BUBBLE_PADDING_RIGHT = 64;
-const BUBBLE_RADIUS = 72;
-const MAX_BUBBLE_WIDTH = 1500;
-const MAX_HEIGHT = 2200;
-const MIN_HEIGHT = 450;
+const IMAGE_SIZE = 1024;                // Square canvas for stickers
+const AVATAR_SIZE = 145;                // Large avatar
+const USERNAME_FONT_SIZE = 40;          // Clean username
+const MESSAGE_FONT_SIZE = 54;           // Clear message
+const BUBBLE_PADDING_TOP = 24;          // Tight padding
+const BUBBLE_PADDING_BOTTOM = 24;
+const BUBBLE_PADDING_LEFT = 36;
+const BUBBLE_PADDING_RIGHT = 36;
+const BUBBLE_RADIUS = 44;               // Rounded corners
+const MAX_BUBBLE_WIDTH = 880;           // Wide bubble
+const MIN_HEIGHT = 300;
 const MAX_CHARS = 1000;
-const CHARS_PER_LINE = 26;
+const CHARS_PER_LINE = 30;
 
 // ================================
-// 🎨 COLOR THEMES
+// COLORS (Clean White Bubble)
 // ================================
-const THEMES = {
-    // --- Purple Theme (Default) ---
-    purple: {
-        bubble: '#6C2BD9',
-        bubbleDark: '#4A1A8A',
-        username: '#D4A017',
-        text: '#FFFFFF',
-        glow: 'rgba(108, 43, 217, 0.4)',
-        border: '#8B5CF6',
-        shadow: 'rgba(108, 43, 217, 0.3)',
-    },
-    // --- White Bubble + Blue Glow ---
-    whiteBlue: {
-        bubble: '#FFFFFF',
-        bubbleDark: '#F0F0F0',
-        username: '#1A237E',
-        text: '#1A1A2E',
-        glow: 'rgba(37, 99, 235, 0.5)',
-        border: '#3B82F6',
-        shadow: 'rgba(37, 99, 235, 0.25)',
-    },
-    // --- Yellow Theme ---
-    yellow: {
-        bubble: '#F59E0B',
-        bubbleDark: '#D97706',
-        username: '#1F2937',
-        text: '#FFFFFF',
-        glow: 'rgba(245, 158, 11, 0.4)',
-        border: '#FBBF24',
-        shadow: 'rgba(245, 158, 11, 0.3)',
-    },
-    // --- Red Theme ---
-    red: {
-        bubble: '#DC2626',
-        bubbleDark: '#991B1B',
-        username: '#FCD34D',
-        text: '#FFFFFF',
-        glow: 'rgba(220, 38, 38, 0.4)',
-        border: '#EF4444',
-        shadow: 'rgba(220, 38, 38, 0.3)',
-    },
-    // --- Blue Theme ---
-    blue: {
-        bubble: '#2563EB',
-        bubbleDark: '#1E40AF',
-        username: '#FCD34D',
-        text: '#FFFFFF',
-        glow: 'rgba(37, 99, 235, 0.4)',
-        border: '#3B82F6',
-        shadow: 'rgba(37, 99, 235, 0.3)',
-    },
-    // --- Green Theme ---
-    green: {
-        bubble: '#16A34A',
-        bubbleDark: '#15803D',
-        username: '#FCD34D',
-        text: '#FFFFFF',
-        glow: 'rgba(22, 163, 74, 0.4)',
-        border: '#22C55E',
-        shadow: 'rgba(22, 163, 74, 0.3)',
-    },
-    // --- Orange Theme ---
-    orange: {
-        bubble: '#EA580C',
-        bubbleDark: '#9A3412',
-        username: '#FCD34D',
-        text: '#FFFFFF',
-        glow: 'rgba(234, 88, 12, 0.4)',
-        border: '#F97316',
-        shadow: 'rgba(234, 88, 12, 0.3)',
-    },
-    // --- Pink Theme ---
-    pink: {
-        bubble: '#DB2777',
-        bubbleDark: '#9D174D',
-        username: '#FCD34D',
-        text: '#FFFFFF',
-        glow: 'rgba(219, 39, 119, 0.4)',
-        border: '#EC4899',
-        shadow: 'rgba(219, 39, 119, 0.3)',
-    },
-    // --- Gold Theme ---
-    gold: {
-        bubble: '#D4A017',
-        bubbleDark: '#B8860B',
-        username: '#D4A017',
-        text: '#FFFFFF',
-        glow: 'rgba(212, 160, 23, 0.4)',
-        border: '#FCD34D',
-        shadow: 'rgba(212, 160, 23, 0.3)',
-    },
-};
-
-// ================================
-// 🔧 SELECT YOUR THEME HERE
-// ================================
-// Options: 'purple', 'yellow', 'red', 'blue', 'green', 'orange', 'pink', 'gold'
-const SELECTED_THEME = 'whiteBlue';  // ← Change this to switch themes
-
-// ================================
-// 🎨 GLOW SETTINGS
-// ================================
-const GLOW_ENABLED = true;  // ← Set to false to disable glow
-
-// ================================
-// LOAD THEME COLORS
-// ================================
-const theme = THEMES[SELECTED_THEME] || THEMES.purple;
-
 const COLORS = {
-    background: '#0A0A0F',
-    bubble: theme.bubble,
-    bubbleDark: theme.bubbleDark,
-    username: theme.username,
-    text: theme.text,
-    border: theme.border,
-    shadow: theme.shadow,
-    glow: theme.glow,
+    // Bubble: White
+    bubble: '#FFFFFF',
+    bubbleDark: '#F5F5F5',
+    // Username: Orange/Gold
+    username: '#F59E0B',
+    // Text: Dark
+    text: '#222222',
+    // Shadow: Soft
+    shadow: 'rgba(0, 0, 0, 0.08)',
+    // Avatar border
+    border: '#E5E7EB',
 };
 
 // ================================
@@ -256,8 +149,6 @@ function loadSpecificFonts() {
 
 const allFonts = loadSpecificFonts();
 console.log(`[FONTS] Total fonts loaded: ${allFonts.length}`);
-console.log(`[THEME] Using: ${SELECTED_THEME.toUpperCase()} theme`);
-console.log(`[GLOW] ${GLOW_ENABLED ? 'ENABLED' : 'DISABLED'}`);
 
 // ================================
 // EMOJI CACHE
@@ -459,7 +350,7 @@ async function buildMessageNode(text, fontSize) {
 }
 
 // ================================
-// CALCULATE HEIGHT
+// CALCULATE HEIGHT (For bubble only)
 // ================================
 function calculateHeight(text, username) {
     const lineHeight = MESSAGE_FONT_SIZE * 1.5;
@@ -489,17 +380,13 @@ function calculateHeight(text, username) {
     
     const estimatedLines = Math.max(1, Math.ceil(lines * 1.1));
     
-    const usernameHeight = USERNAME_FONT_SIZE + 20;
+    const usernameHeight = USERNAME_FONT_SIZE + 16;
     const messageHeight = estimatedLines * lineHeight;
     const paddingTotal = BUBBLE_PADDING_TOP + BUBBLE_PADDING_BOTTOM + 10;
     const bubbleHeight = usernameHeight + messageHeight + paddingTotal;
     
-    const finalBubbleHeight = Math.min(Math.max(bubbleHeight, MIN_HEIGHT), MAX_HEIGHT);
-    const canvasHeight = finalBubbleHeight + 80;
-    
     return {
-        bubbleHeight: finalBubbleHeight,
-        canvasHeight: canvasHeight,
+        bubbleHeight: Math.max(bubbleHeight, MIN_HEIGHT),
         lines: estimatedLines,
     };
 }
@@ -513,26 +400,17 @@ function truncateText(text, maxLength = MAX_CHARS) {
 }
 
 // ================================
-// GENERATE QUOTE
+// GENERATE QUOTE (SQUARE, TRANSPARENT, CENTERED)
 // ================================
 export async function generateQuote({ text, username, avatar, color }) {
     const finalText = truncateText(text);
     const isTruncated = finalText !== text;
     
-    const { canvasHeight, lines } = calculateHeight(finalText, username);
+    const { bubbleHeight, lines } = calculateHeight(finalText, username);
     const messageNode = await buildMessageNode(finalText, MESSAGE_FONT_SIZE);
 
-    // Build glow effect based on settings
-    const glowStyle = GLOW_ENABLED ? {
-        boxShadow: `0 0 60px ${COLORS.glow}`,
-        background: `rgba(108, 43, 217, 0.05)`,
-    } : {
-        boxShadow: 'none',
-        background: 'transparent',
-    };
-
     // ================================
-    // GENERATE SVG
+    // GENERATE SVG - SQUARE, TRANSPARENT, CENTERED
     // ================================
     const svg = await satori(
         {
@@ -540,13 +418,12 @@ export async function generateQuote({ text, username, avatar, color }) {
             props: {
                 style: {
                     display: 'flex',
-                    alignItems: 'center',
                     justifyContent: 'center',
-                    padding: '50px',
-                    background: COLORS.background,
+                    alignItems: 'center',
+                    width: IMAGE_SIZE,
+                    height: IMAGE_SIZE,
+                    background: 'transparent',
                     fontFamily: '"Roboto", "Noto Sans", "Noto Color Emoji", sans-serif',
-                    width: IMAGE_WIDTH,
-                    height: canvasHeight,
                 },
                 children: [
                     {
@@ -555,14 +432,12 @@ export async function generateQuote({ text, username, avatar, color }) {
                             style: {
                                 display: 'flex',
                                 alignItems: 'flex-end',
-                                gap: '28px',
-                                padding: '24px',
-                                borderRadius: BUBBLE_RADIUS + 8,
-                                ...glowStyle,
+                                gap: '20px',
+                                maxWidth: MAX_BUBBLE_WIDTH + 100,
                             },
                             children: [
                                 // ================================
-                                // AVATAR
+                                // AVATAR (Large, aligned with bubble)
                                 // ================================
                                 {
                                     type: 'div',
@@ -574,9 +449,9 @@ export async function generateQuote({ text, username, avatar, color }) {
                                             borderRadius: '50%',
                                             overflow: 'hidden',
                                             flexShrink: 0,
-                                            border: `6px solid ${COLORS.bubble}`,
-                                            boxShadow: `0 0 40px ${COLORS.shadow}`,
-                                            clipPath: 'inset(0 round 50%)',
+                                            border: `4px solid ${COLORS.border}`,
+                                            boxShadow: '0 2px 12px rgba(0,0,0,0.08)',
+                                            marginBottom: 14,
                                         },
                                         children: avatar && avatar !== 'default' ? [
                                             {
@@ -602,10 +477,10 @@ export async function generateQuote({ text, username, avatar, color }) {
                                                         justifyContent: 'center',
                                                         width: '100%',
                                                         height: '100%',
-                                                        background: '#2A2A3A',
-                                                        fontSize: '72px',
+                                                        background: '#E5E7EB',
+                                                        fontSize: '64px',
                                                         fontWeight: 'bold',
-                                                        color: COLORS.text,
+                                                        color: '#9CA3AF',
                                                         fontFamily: '"Noto Sans", "Roboto", sans-serif',
                                                         borderRadius: '50%',
                                                     },
@@ -616,7 +491,7 @@ export async function generateQuote({ text, username, avatar, color }) {
                                     },
                                 },
                                 // ================================
-                                // BUBBLE
+                                // BUBBLE (White, clean)
                                 // ================================
                                 {
                                     type: 'div',
@@ -632,33 +507,36 @@ export async function generateQuote({ text, username, avatar, color }) {
                                             borderRadius: BUBBLE_RADIUS,
                                             position: 'relative',
                                             maxWidth: MAX_BUBBLE_WIDTH,
-                                            boxShadow: `0 0 60px ${COLORS.shadow}`,
-                                            alignSelf: 'center',
+                                            minWidth: 200,
+                                            boxShadow: '0 4px 24px rgba(0,0,0,0.08)',
+                                            alignSelf: 'flex-start',
                                         },
                                         children: [
-                                            // Tail
+                                            // ================================
+                                            // TAIL (Soft, rounded, flatter)
+                                            // ================================
                                             {
                                                 type: 'svg',
                                                 props: {
-                                                    width: 32,
-                                                    height: 32,
+                                                    width: 28,
+                                                    height: 28,
                                                     style: {
                                                         position: 'absolute',
-                                                        left: -16,
-                                                        bottom: 28,
+                                                        left: -10,
+                                                        bottom: 22,
                                                     },
                                                     children: [
                                                         {
                                                             type: 'path',
                                                             props: {
-                                                                d: "M26 0 C15 3 7 11 2 26 C12 21 20 17 26 11 Z",
+                                                                d: "M24 4 C17 5 10 9 5 18 C10 17 16 14 22 10 C23 8 24 6 24 4 Z",
                                                                 fill: COLORS.bubble,
                                                             },
                                                         },
                                                     ],
                                                 },
                                             },
-                                            // Username
+                                            // Username (Orange/Gold)
                                             {
                                                 type: 'div',
                                                 props: {
@@ -667,22 +545,23 @@ export async function generateQuote({ text, username, avatar, color }) {
                                                         fontSize: USERNAME_FONT_SIZE,
                                                         fontWeight: 700,
                                                         color: COLORS.username,
-                                                        marginBottom: '16px',
+                                                        marginBottom: '8px',
                                                         fontFamily: '"Noto Sans", "Roboto", sans-serif',
                                                     },
                                                     children: username,
                                                 },
                                             },
-                                            // Message
+                                            // Message (Dark)
                                             messageNode,
+                                            // Truncation notice
                                             ...(isTruncated ? [{
                                                 type: 'div',
                                                 props: {
                                                     style: {
                                                         display: 'flex',
-                                                        fontSize: 24,
-                                                        color: 'rgba(255,255,255,0.5)',
-                                                        marginTop: 10,
+                                                        fontSize: 16,
+                                                        color: '#9CA3AF',
+                                                        marginTop: 6,
                                                         fontFamily: '"Roboto", "Noto Sans", sans-serif',
                                                     },
                                                     children: '... (truncated)',
@@ -698,14 +577,14 @@ export async function generateQuote({ text, username, avatar, color }) {
             },
         },
         {
-            width: IMAGE_WIDTH,
-            height: canvasHeight,
+            width: IMAGE_SIZE,
+            height: IMAGE_SIZE,
             fonts: allFonts,
         }
     );
 
     // ================================
-    // RENDER SVG TO PNG using Sharp
+    // RENDER SVG TO PNG using Sharp (Transparent)
     // ================================
     const pngBuffer = await sharp(Buffer.from(svg))
         .png({
@@ -716,4 +595,5 @@ export async function generateQuote({ text, username, avatar, color }) {
 
     return pngBuffer;
 }
+
 
