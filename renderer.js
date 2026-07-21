@@ -30,13 +30,13 @@ if (!fs.existsSync(EMOJI_CACHE_DIR)) {
 // ================================
 const IMAGE_SIZE = 1024;                // Square canvas for stickers
 const AVATAR_SIZE = 170;                // Bigger avatar
-const USERNAME_FONT_SIZE = 46;          // Bigger username
-const MESSAGE_FONT_SIZE = 64;           // Bigger message
+const USERNAME_FONT_SIZE = 53;          // Bigger username
+const MESSAGE_FONT_SIZE = 70;           // Bigger message
 const BUBBLE_PADDING_TOP = 22;          // Tighter padding
 const BUBBLE_PADDING_BOTTOM = 22;
 const BUBBLE_PADDING_LEFT = 32;
 const BUBBLE_PADDING_RIGHT = 32;
-const BUBBLE_RADIUS = 46;               // Rounded corners
+const BUBBLE_RADIUS = 48;               // Rounded corners
 const MAX_BUBBLE_WIDTH = 950;           // WIDER - fills 93% of canvas
 const MIN_BUBBLE_WIDTH = 450;           // Ensures short messages look good
 const MAX_CHARS = 1000;
@@ -555,7 +555,7 @@ export async function generateQuote({ text, username, avatar, color }) {
                                                         fontSize: USERNAME_FONT_SIZE,
                                                         fontWeight: 900,
                                                         color: COLORS.username,
-                                                        marginBottom: '8px',
+                                                        marginBottom: '16px',
                                                         fontFamily: '"Noto Sans", "Roboto", sans-serif',
                                                     },
                                                     children: username,
