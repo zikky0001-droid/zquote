@@ -1,6 +1,6 @@
 /**
  * Quote Renderer - SVG to PNG
- * Visual improvements: avatar, tail, fit-content, padding, height estimation
+ * STICKER-OPTIMIZED: Large bubble, black background, neon glow
  */
 
 import fs from 'fs';
@@ -26,22 +26,32 @@ if (!fs.existsSync(EMOJI_CACHE_DIR)) {
 }
 
 // ================================
-// CONSTANTS (EXTRA LARGE)
+// CONSTANTS (STICKER-OPTIMIZED)
 // ================================
-const IMAGE_WIDTH = 1200;           // ← Was 900 (33% larger)
-const AVATAR_SIZE = 120;            // ← Was 80 (50% larger)
-const USERNAME_FONT_SIZE = 36;      // ← Was 24 (50% larger)
-const MESSAGE_FONT_SIZE = 48;       // ← Was 32 (50% larger)
-const BUBBLE_PADDING_TOP = 28;      // ← Was 18
-const BUBBLE_PADDING_BOTTOM = 28;   // ← Was 18
-const BUBBLE_PADDING_LEFT = 36;     // ← Was 24
-const BUBBLE_PADDING_RIGHT = 36;    // ← Was 24
-const BUBBLE_RADIUS = 48;           // ← Was 38
-const MAX_BUBBLE_WIDTH = 850;       // ← Was 620
-const MIN_HEIGHT = 200;
-const MAX_HEIGHT = 1200;            // ← Was 800
-const MAX_CHARS = 1000; 
-const CHARS_PER_LINE = 30;  
+const IMAGE_WIDTH = 1200;
+const AVATAR_SIZE = 145;            // ← Bigger avatar
+const USERNAME_FONT_SIZE = 42;      // ← Bigger username
+const MESSAGE_FONT_SIZE = 56;       // ← Bigger message
+const BUBBLE_PADDING_TOP = 40;      // ← More padding
+const BUBBLE_PADDING_BOTTOM = 40;
+const BUBBLE_PADDING_LEFT = 48;
+const BUBBLE_PADDING_RIGHT = 48;
+const BUBBLE_RADIUS = 56;           // ← More rounded
+const MAX_BUBBLE_WIDTH = 1040;      // ← Much wider bubble
+const MAX_HEIGHT = 1400;
+const MIN_HEIGHT = 300;
+const MAX_CHARS = 1000;
+const CHARS_PER_LINE = 26;
+
+// Colors (Neon Purple Theme)
+const COLORS = {
+    background: '#000000',           // Black background
+    bubble: '#1F1438',               // Dark purple
+    bubbleGlow: 'rgba(138, 43, 226, 0.3)', // Neon glow
+    username: '#FFB74D',             // Orange/Gold
+    text: '#FFFFFF',                 // White text
+    accent: '#A855F7',               // Neon purple accent
+};
 
 // ================================
 // LOAD FONTS
@@ -227,9 +237,9 @@ async function buildMessageNode(text, fontSize) {
                 style: {
                     display: 'flex',
                     fontSize: fontSize,
-                    color: '#FFFFFF',
+                    color: COLORS.text,
                     fontWeight: 400,
-                    lineHeight: 1.4,
+                    lineHeight: 1.5,
                     fontFamily: '"Roboto", "Noto Sans", sans-serif',
                     flexWrap: 'wrap',
                 },
@@ -253,7 +263,7 @@ async function buildMessageNode(text, fontSize) {
                         style: {
                             display: 'flex',
                             fontSize: fontSize,
-                            color: '#FFFFFF',
+                            color: COLORS.text,
                             fontWeight: 400,
                             fontFamily: '"Roboto", "Noto Sans", sans-serif',
                         },
@@ -285,7 +295,7 @@ async function buildMessageNode(text, fontSize) {
                         style: {
                             display: 'flex',
                             fontSize: fontSize,
-                            color: '#FFFFFF',
+                            color: COLORS.text,
                             fontWeight: 400,
                             fontFamily: '"Roboto", "Noto Sans", sans-serif',
                         },
@@ -303,7 +313,7 @@ async function buildMessageNode(text, fontSize) {
                 style: {
                     display: 'flex',
                     fontSize: fontSize,
-                    color: '#FFFFFF',
+                    color: COLORS.text,
                     fontWeight: 400,
                     fontFamily: '"Roboto", "Noto Sans", sans-serif',
                 },
@@ -320,11 +330,11 @@ async function buildMessageNode(text, fontSize) {
                 flexDirection: 'row',
                 flexWrap: 'wrap',
                 alignItems: 'center',
-                gap: '2px',
+                gap: '4px',
                 fontSize: fontSize,
-                color: '#FFFFFF',
+                color: COLORS.text,
                 fontWeight: 400,
-                lineHeight: 1.4,
+                lineHeight: 1.5,
                 fontFamily: '"Roboto", "Noto Sans", sans-serif',
                 maxWidth: MAX_BUBBLE_WIDTH - BUBBLE_PADDING_LEFT - BUBBLE_PADDING_RIGHT,
             },
@@ -337,8 +347,8 @@ async function buildMessageNode(text, fontSize) {
 // CALCULATE HEIGHT
 // ================================
 function calculateHeight(text, username) {
-    const lineHeight = MESSAGE_FONT_SIZE * 1.5;   
-    const charsPerLine = CHARS_PER_LINE;    
+    const lineHeight = MESSAGE_FONT_SIZE * 1.5;
+    const charsPerLine = CHARS_PER_LINE;
     
     const words = text.split(' ');
     let lines = 1;
@@ -364,15 +374,13 @@ function calculateHeight(text, username) {
     
     const estimatedLines = Math.max(1, Math.ceil(lines * 1.1));
     
-    const usernameHeight = USERNAME_FONT_SIZE + 14;
+    const usernameHeight = USERNAME_FONT_SIZE + 18;
     const messageHeight = estimatedLines * lineHeight;
     const paddingTotal = BUBBLE_PADDING_TOP + BUBBLE_PADDING_BOTTOM + 10;
     const bubbleHeight = usernameHeight + messageHeight + paddingTotal;
     
     const finalBubbleHeight = Math.min(Math.max(bubbleHeight, MIN_HEIGHT), MAX_HEIGHT);
-    
-    // ✅ THIS IS THE HEIGHT YOU WANT TO ADJUST
-    const canvasHeight = finalBubbleHeight + 40; 
+    const canvasHeight = finalBubbleHeight + 80; // Extra padding for sticker feel
     
     return {
         bubbleHeight: finalBubbleHeight,
@@ -390,7 +398,7 @@ function truncateText(text, maxLength = MAX_CHARS) {
 }
 
 // ================================
-// GENERATE QUOTE
+// GENERATE QUOTE (STICKER-OPTIMIZED)
 // ================================
 export async function generateQuote({ text, username, avatar, color }) {
     const finalText = truncateText(text);
@@ -408,143 +416,161 @@ export async function generateQuote({ text, username, avatar, color }) {
             props: {
                 style: {
                     display: 'flex',
-                    alignItems: 'flex-end',
-                    gap: '18px',
-                    // ✅ IMPROVEMENT 5: Reduce outer padding (20px → 14px)
-                    padding: '14px',
-                    background: 'transparent',
+                    alignItems: 'center',      // ← Centered vertically
+                    justifyContent: 'center',  // ← Centered horizontally
+                    padding: '40px',           // ← More padding around edges
+                    background: COLORS.background,
                     fontFamily: '"Roboto", "Noto Sans", "Noto Color Emoji", sans-serif',
                     width: IMAGE_WIDTH,
+                    height: canvasHeight,
                 },
                 children: [
                     // ================================
-                    // AVATAR (✅ IMPROVEMENT 1: marginBottom 10 → 8)
+                    // GLOW EFFECT (Box shadow replacement)
                     // ================================
                     {
                         type: 'div',
                         props: {
                             style: {
                                 display: 'flex',
-                                width: AVATAR_SIZE,
-                                height: AVATAR_SIZE,
-                                borderRadius: '50%',
-                                overflow: 'hidden',
-                                flexShrink: 0,
-                                boxShadow: '0 0 0 4px rgba(255,255,255,0.08)',
-                                alignSelf: 'flex-end',
-                                marginBottom: 8,
-                            },
-                            children: avatar && avatar !== 'default' ? [
-                                {
-                                    type: 'img',
-                                    props: {
-                                        src: avatar,
-                                        style: {
-                                            display: 'flex',
-                                            width: '100%',
-                                            height: '100%',
-                                            objectFit: 'cover',
-                                        },
-                                    },
-                                }
-                            ] : [
-                                {
-                                    type: 'div',
-                                    props: {
-                                        style: {
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            justifyContent: 'center',
-                                            width: '100%',
-                                            height: '100%',
-                                            background: '#3A3A3E',
-                                            fontSize: '36px',
-                                            fontWeight: 'bold',
-                                            color: '#FFFFFF',
-                                            fontFamily: '"Noto Sans", "Roboto", sans-serif',
-                                        },
-                                        children: username.charAt(0).toUpperCase(),
-                                    },
-                                }
-                            ],
-                        },
-                    },
-                    // ================================
-                    // BUBBLE (✅ IMPROVEMENT 3: fit-content)
-                    // ================================
-                    {
-                        type: 'div',
-                        props: {
-                            style: {
-                                display: 'flex',
-                                flexDirection: 'column',
-                                background: '#2B2D31',
-                                paddingTop: BUBBLE_PADDING_TOP,
-                                paddingBottom: BUBBLE_PADDING_BOTTOM,
-                                paddingLeft: BUBBLE_PADDING_LEFT,
-                                paddingRight: BUBBLE_PADDING_RIGHT,
-                                borderRadius: BUBBLE_RADIUS,
-                                position: 'relative',
-                                maxWidth: MAX_BUBBLE_WIDTH,
-                                boxShadow: '0 6px 20px rgba(0,0,0,0.25)',
-                                alignSelf: 'flex-start',
+                                alignItems: 'flex-end',
+                                gap: '24px',
+                                padding: '20px',
+                                borderRadius: BUBBLE_RADIUS + 8,
+                                boxShadow: '0 0 60px rgba(138, 43, 226, 0.4)',
+                                background: 'rgba(138, 43, 226, 0.05)',
                             },
                             children: [
                                 // ================================
-                                // TAIL (✅ IMPROVEMENT 2: Smoother path)
+                                // AVATAR (Larger)
                                 // ================================
                                 {
-                                    type: 'svg',
+                                    type: 'div',
                                     props: {
-                                        width: 24,
-                                        height: 24,
                                         style: {
-                                            position: 'absolute',
-                                            left: -12,
-                                            bottom: 18,
+                                            display: 'flex',
+                                            width: AVATAR_SIZE,
+                                            height: AVATAR_SIZE,
+                                            borderRadius: '50%',
+                                            overflow: 'hidden',
+                                            flexShrink: 0,
+                                            border: '4px solid #A855F7',
+                                            boxShadow: '0 0 30px rgba(138, 43, 226, 0.5)',
                                         },
-                                        children: [
+                                        children: avatar && avatar !== 'default' ? [
                                             {
-                                                type: 'path',
+                                                type: 'img',
                                                 props: {
-                                                    d: "M22 0 C13 2 6 9 2 22 C12 18 18 14 22 9 Z",
-                                                    fill: '#2B2D31',
+                                                    src: avatar,
+                                                    style: {
+                                                        display: 'flex',
+                                                        width: '100%',
+                                                        height: '100%',
+                                                        objectFit: 'cover',
+                                                    },
                                                 },
-                                            },
+                                            }
+                                        ] : [
+                                            {
+                                                type: 'div',
+                                                props: {
+                                                    style: {
+                                                        display: 'flex',
+                                                        alignItems: 'center',
+                                                        justifyContent: 'center',
+                                                        width: '100%',
+                                                        height: '100%',
+                                                        background: '#3A3A3E',
+                                                        fontSize: '52px',
+                                                        fontWeight: 'bold',
+                                                        color: COLORS.text,
+                                                        fontFamily: '"Noto Sans", "Roboto", sans-serif',
+                                                    },
+                                                    children: username.charAt(0).toUpperCase(),
+                                                },
+                                            }
                                         ],
                                     },
                                 },
-                                // Username
+                                // ================================
+                                // BUBBLE (Neon Purple)
+                                // ================================
                                 {
                                     type: 'div',
                                     props: {
                                         style: {
                                             display: 'flex',
-                                            fontSize: USERNAME_FONT_SIZE,
-                                            fontWeight: 700,
-                                            color: color,
-                                            marginBottom: '10px',
-                                            fontFamily: '"Noto Sans", "Roboto", sans-serif',
+                                            flexDirection: 'column',
+                                            background: COLORS.bubble,
+                                            paddingTop: BUBBLE_PADDING_TOP,
+                                            paddingBottom: BUBBLE_PADDING_BOTTOM,
+                                            paddingLeft: BUBBLE_PADDING_LEFT,
+                                            paddingRight: BUBBLE_PADDING_RIGHT,
+                                            borderRadius: BUBBLE_RADIUS,
+                                            position: 'relative',
+                                            maxWidth: MAX_BUBBLE_WIDTH,
+                                            boxShadow: '0 0 40px rgba(138, 43, 226, 0.3), inset 0 0 60px rgba(138, 43, 226, 0.05)',
+                                            alignSelf: 'center',
                                         },
-                                        children: username,
+                                        children: [
+                                            // ================================
+                                            // TAIL (Neon Purple)
+                                            // ================================
+                                            {
+                                                type: 'svg',
+                                                props: {
+                                                    width: 28,
+                                                    height: 28,
+                                                    style: {
+                                                        position: 'absolute',
+                                                        left: -14,
+                                                        bottom: 24,
+                                                    },
+                                                    children: [
+                                                        {
+                                                            type: 'path',
+                                                            props: {
+                                                                d: "M22 0 C13 2 6 9 2 22 C12 18 18 14 22 9 Z",
+                                                                fill: COLORS.bubble,
+                                                            },
+                                                        },
+                                                    ],
+                                                },
+                                            },
+                                            // Username
+                                            {
+                                                type: 'div',
+                                                props: {
+                                                    style: {
+                                                        display: 'flex',
+                                                        fontSize: USERNAME_FONT_SIZE,
+                                                        fontWeight: 700,
+                                                        color: COLORS.username,
+                                                        marginBottom: '12px',
+                                                        fontFamily: '"Noto Sans", "Roboto", sans-serif',
+                                                    },
+                                                    children: username,
+                                                },
+                                            },
+                                            // Message
+                                            messageNode,
+                                            // Truncation notice
+                                            ...(isTruncated ? [{
+                                                type: 'div',
+                                                props: {
+                                                    style: {
+                                                        display: 'flex',
+                                                        fontSize: 18,
+                                                        color: '#666666',
+                                                        marginTop: 8,
+                                                        fontFamily: '"Roboto", "Noto Sans", sans-serif',
+                                                    },
+                                                    children: '... (truncated)',
+                                                },
+                                            }] : []),
+                                        ],
                                     },
                                 },
-                                // Message
-                                messageNode,
-                                // Truncation notice
-                                ...(isTruncated ? [{
-                                    type: 'div',
-                                    props: {
-                                        style: {
-                                            display: 'flex',
-                                            fontSize: 14,
-                                            color: '#666666',
-                                            marginTop: 4,
-                                            fontFamily: '"Roboto", "Noto Sans", sans-serif',
-                                        },
-                                        children: '... (truncated)',
-                                    },
-                                }] : []),
                             ],
                         },
                     },
@@ -580,9 +606,4 @@ export async function generateQuote({ text, username, avatar, color }) {
     const pngData = resvg.render();
     return pngData.asPng();
 }
-
-
-
-
-
 
