@@ -26,22 +26,20 @@ if (!fs.existsSync(EMOJI_CACHE_DIR)) {
 }
 
 // ================================
-// CONSTANTS (KEEP PROPORTIONS)
+// CONSTANTS (EXTRA LARGE)
 // ================================
-const IMAGE_WIDTH = 900;
-const AVATAR_SIZE = 80;
-const USERNAME_FONT_SIZE = 24;
-const MESSAGE_FONT_SIZE = 32;
-const BUBBLE_PADDING_TOP = 18;
-const BUBBLE_PADDING_BOTTOM = 18;
-const BUBBLE_PADDING_LEFT = 24;
-const BUBBLE_PADDING_RIGHT = 24;
-const BUBBLE_RADIUS = 38;
-const MAX_BUBBLE_WIDTH = 620;
-const MAX_CHARS = 1000;
-const MIN_HEIGHT = 150;
-const MAX_HEIGHT = 800;
-const CHARS_PER_LINE = 28;
+const IMAGE_WIDTH = 1200;           // ← Was 900 (33% larger)
+const AVATAR_SIZE = 120;            // ← Was 80 (50% larger)
+const USERNAME_FONT_SIZE = 36;      // ← Was 24 (50% larger)
+const MESSAGE_FONT_SIZE = 48;       // ← Was 32 (50% larger)
+const BUBBLE_PADDING_TOP = 28;      // ← Was 18
+const BUBBLE_PADDING_BOTTOM = 28;   // ← Was 18
+const BUBBLE_PADDING_LEFT = 36;     // ← Was 24
+const BUBBLE_PADDING_RIGHT = 36;    // ← Was 24
+const BUBBLE_RADIUS = 48;           // ← Was 38
+const MAX_BUBBLE_WIDTH = 850;       // ← Was 620
+const MAX_HEIGHT = 1200;            // ← Was 800
+const CHARS_PER_LINE = 30;  
 
 // ================================
 // LOAD FONTS
@@ -334,11 +332,11 @@ async function buildMessageNode(text, fontSize) {
 }
 
 // ================================
-// CALCULATE HEIGHT (FIXED: Better long word handling)
+// CALCULATE HEIGHT
 // ================================
 function calculateHeight(text, username) {
-    const lineHeight = MESSAGE_FONT_SIZE * 1.4;
-    const charsPerLine = CHARS_PER_LINE;
+    const lineHeight = MESSAGE_FONT_SIZE * 1.5;   
+    const charsPerLine = CHARS_PER_LINE;    
     
     const words = text.split(' ');
     let lines = 1;
@@ -347,14 +345,10 @@ function calculateHeight(text, username) {
     for (const word of words) {
         let wordLength = word.length;
         
-        // ✅ IMPROVEMENT 6: Handle long words (URLs, etc.)
         if (wordLength > charsPerLine) {
             lines += Math.floor(wordLength / charsPerLine);
             wordLength = wordLength % charsPerLine;
-            if (wordLength === 0) {
-                // Exactly fits, no extra line needed
-                continue;
-            }
+            if (wordLength === 0) continue;
             currentLineLength = 0;
         }
         
@@ -375,10 +369,8 @@ function calculateHeight(text, username) {
     
     const finalBubbleHeight = Math.min(Math.max(bubbleHeight, MIN_HEIGHT), MAX_HEIGHT);
     
-    // ✅ IMPROVEMENT 4: Reduce canvas height padding (60 → 28)
-    const canvasHeight = finalBubbleHeight + 28;
-    
-    console.log(`[RENDERER] Text: ${text.length} chars, ${estimatedLines} lines, height: ${canvasHeight}px`);
+    // ✅ THIS IS THE HEIGHT YOU WANT TO ADJUST
+    const canvasHeight = finalBubbleHeight + 40; 
     
     return {
         bubbleHeight: finalBubbleHeight,
