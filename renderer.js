@@ -1,6 +1,6 @@
 /**
  * Quote Renderer - SVG to PNG (FAST - Using Sharp)
- * Enlarged size, Gold bubble, Blue username, White text
+ * Multiple Color Themes: Purple, Yellow, Red, Blue, Green, Orange, Pink, Gold
  */
 
 import fs from 'fs';
@@ -26,33 +26,134 @@ if (!fs.existsSync(EMOJI_CACHE_DIR)) {
 }
 
 // ================================
-// CONSTANTS (ENLARGED)
+// CONSTANTS
 // ================================
-const IMAGE_WIDTH = 1800;           // Enlarged
-const AVATAR_SIZE = 220;            // Enlarged
-const USERNAME_FONT_SIZE = 64;      // Enlarged
-const MESSAGE_FONT_SIZE = 82;       // Enlarged
-const BUBBLE_PADDING_TOP = 48;      
-const BUBBLE_PADDING_BOTTOM = 48;
-const BUBBLE_PADDING_LEFT = 56;
-const BUBBLE_PADDING_RIGHT = 56;
+const IMAGE_WIDTH = 1800;
+const AVATAR_SIZE = 220;
+const USERNAME_FONT_SIZE = 80;
+const MESSAGE_FONT_SIZE = 100;
+const BUBBLE_PADDING_TOP = 56;
+const BUBBLE_PADDING_BOTTOM = 56;
+const BUBBLE_PADDING_LEFT = 64;
+const BUBBLE_PADDING_RIGHT = 64;
 const BUBBLE_RADIUS = 72;
-const MAX_BUBBLE_WIDTH = 1500;      // Enlarged
-const MAX_HEIGHT = 2000;
-const MIN_HEIGHT = 400;
+const MAX_BUBBLE_WIDTH = 1500;
+const MAX_HEIGHT = 2200;
+const MIN_HEIGHT = 450;
 const MAX_CHARS = 1000;
-const CHARS_PER_LINE = 28;
+const CHARS_PER_LINE = 26;
 
 // ================================
-// COLORS (Gold Theme)
+// 🎨 COLOR THEMES
 // ================================
+const THEMES = {
+    // --- Purple Theme (Default) ---
+    purple: {
+        bubble: '#6C2BD9',
+        bubbleDark: '#4A1A8A',
+        username: '#D4A017',
+        text: '#FFFFFF',
+        glow: 'rgba(108, 43, 217, 0.4)',
+        border: '#8B5CF6',
+        shadow: 'rgba(108, 43, 217, 0.3)',
+    },
+    // --- Yellow Theme ---
+    yellow: {
+        bubble: '#F59E0B',
+        bubbleDark: '#D97706',
+        username: '#1F2937',
+        text: '#FFFFFF',
+        glow: 'rgba(245, 158, 11, 0.4)',
+        border: '#FBBF24',
+        shadow: 'rgba(245, 158, 11, 0.3)',
+    },
+    // --- Red Theme ---
+    red: {
+        bubble: '#DC2626',
+        bubbleDark: '#991B1B',
+        username: '#FCD34D',
+        text: '#FFFFFF',
+        glow: 'rgba(220, 38, 38, 0.4)',
+        border: '#EF4444',
+        shadow: 'rgba(220, 38, 38, 0.3)',
+    },
+    // --- Blue Theme ---
+    blue: {
+        bubble: '#2563EB',
+        bubbleDark: '#1E40AF',
+        username: '#FCD34D',
+        text: '#FFFFFF',
+        glow: 'rgba(37, 99, 235, 0.4)',
+        border: '#3B82F6',
+        shadow: 'rgba(37, 99, 235, 0.3)',
+    },
+    // --- Green Theme ---
+    green: {
+        bubble: '#16A34A',
+        bubbleDark: '#15803D',
+        username: '#FCD34D',
+        text: '#FFFFFF',
+        glow: 'rgba(22, 163, 74, 0.4)',
+        border: '#22C55E',
+        shadow: 'rgba(22, 163, 74, 0.3)',
+    },
+    // --- Orange Theme ---
+    orange: {
+        bubble: '#EA580C',
+        bubbleDark: '#9A3412',
+        username: '#FCD34D',
+        text: '#FFFFFF',
+        glow: 'rgba(234, 88, 12, 0.4)',
+        border: '#F97316',
+        shadow: 'rgba(234, 88, 12, 0.3)',
+    },
+    // --- Pink Theme ---
+    pink: {
+        bubble: '#DB2777',
+        bubbleDark: '#9D174D',
+        username: '#FCD34D',
+        text: '#FFFFFF',
+        glow: 'rgba(219, 39, 119, 0.4)',
+        border: '#EC4899',
+        shadow: 'rgba(219, 39, 119, 0.3)',
+    },
+    // --- Gold Theme ---
+    gold: {
+        bubble: '#D4A017',
+        bubbleDark: '#B8860B',
+        username: '#D4A017',
+        text: '#FFFFFF',
+        glow: 'rgba(212, 160, 23, 0.4)',
+        border: '#FCD34D',
+        shadow: 'rgba(212, 160, 23, 0.3)',
+    },
+};
+
+// ================================
+// 🔧 SELECT YOUR THEME HERE
+// ================================
+// Options: 'purple', 'yellow', 'red', 'blue', 'green', 'orange', 'pink', 'gold'
+const SELECTED_THEME = 'purple';  // ← Change this to switch themes
+
+// ================================
+// 🎨 GLOW SETTINGS
+// ================================
+const GLOW_ENABLED = true;  // ← Set to false to disable glow
+
+// ================================
+// LOAD THEME COLORS
+// ================================
+const theme = THEMES[SELECTED_THEME] || THEMES.purple;
+
 const COLORS = {
-    background: '#0A0A0F',           // Dark background
-    bubble: '#D4A017',               // Beautiful Gold
-    bubbleDark: '#B8860B',           // Darker gold for depth
-    username: '#4FC3F7',             // Light Blue
-    text: '#FFFFFF',                 // White
-    shadow: 'rgba(212, 160, 23, 0.3)', // Gold shadow
+    background: '#0A0A0F',
+    bubble: theme.bubble,
+    bubbleDark: theme.bubbleDark,
+    username: theme.username,
+    text: theme.text,
+    border: theme.border,
+    shadow: theme.shadow,
+    glow: theme.glow,
 };
 
 // ================================
@@ -145,6 +246,8 @@ function loadSpecificFonts() {
 
 const allFonts = loadSpecificFonts();
 console.log(`[FONTS] Total fonts loaded: ${allFonts.length}`);
+console.log(`[THEME] Using: ${SELECTED_THEME.toUpperCase()} theme`);
+console.log(`[GLOW] ${GLOW_ENABLED ? 'ENABLED' : 'DISABLED'}`);
 
 // ================================
 // EMOJI CACHE
@@ -400,7 +503,7 @@ function truncateText(text, maxLength = MAX_CHARS) {
 }
 
 // ================================
-// GENERATE QUOTE (Using Sharp for fast rendering)
+// GENERATE QUOTE
 // ================================
 export async function generateQuote({ text, username, avatar, color }) {
     const finalText = truncateText(text);
@@ -409,8 +512,17 @@ export async function generateQuote({ text, username, avatar, color }) {
     const { canvasHeight, lines } = calculateHeight(finalText, username);
     const messageNode = await buildMessageNode(finalText, MESSAGE_FONT_SIZE);
 
+    // Build glow effect based on settings
+    const glowStyle = GLOW_ENABLED ? {
+        boxShadow: `0 0 60px ${COLORS.glow}`,
+        background: `rgba(108, 43, 217, 0.05)`,
+    } : {
+        boxShadow: 'none',
+        background: 'transparent',
+    };
+
     // ================================
-    // STEP 1: Generate SVG using Satori (Fast)
+    // GENERATE SVG
     // ================================
     const svg = await satori(
         {
@@ -436,11 +548,11 @@ export async function generateQuote({ text, username, avatar, color }) {
                                 gap: '28px',
                                 padding: '24px',
                                 borderRadius: BUBBLE_RADIUS + 8,
-                                background: 'rgba(212, 160, 23, 0.08)',
+                                ...glowStyle,
                             },
                             children: [
                                 // ================================
-                                // AVATAR (Enlarged)
+                                // AVATAR
                                 // ================================
                                 {
                                     type: 'div',
@@ -454,6 +566,7 @@ export async function generateQuote({ text, username, avatar, color }) {
                                             flexShrink: 0,
                                             border: `6px solid ${COLORS.bubble}`,
                                             boxShadow: `0 0 40px ${COLORS.shadow}`,
+                                            clipPath: 'inset(0 round 50%)',
                                         },
                                         children: avatar && avatar !== 'default' ? [
                                             {
@@ -465,6 +578,7 @@ export async function generateQuote({ text, username, avatar, color }) {
                                                         width: '100%',
                                                         height: '100%',
                                                         objectFit: 'cover',
+                                                        borderRadius: '50%',
                                                     },
                                                 },
                                             }
@@ -483,6 +597,7 @@ export async function generateQuote({ text, username, avatar, color }) {
                                                         fontWeight: 'bold',
                                                         color: COLORS.text,
                                                         fontFamily: '"Noto Sans", "Roboto", sans-serif',
+                                                        borderRadius: '50%',
                                                     },
                                                     children: username.charAt(0).toUpperCase(),
                                                 },
@@ -491,7 +606,7 @@ export async function generateQuote({ text, username, avatar, color }) {
                                     },
                                 },
                                 // ================================
-                                // BUBBLE (Gold)
+                                // BUBBLE
                                 // ================================
                                 {
                                     type: 'div',
@@ -533,7 +648,7 @@ export async function generateQuote({ text, username, avatar, color }) {
                                                     ],
                                                 },
                                             },
-                                            // Username (Blue)
+                                            // Username
                                             {
                                                 type: 'div',
                                                 props: {
@@ -548,7 +663,7 @@ export async function generateQuote({ text, username, avatar, color }) {
                                                     children: username,
                                                 },
                                             },
-                                            // Message (White)
+                                            // Message
                                             messageNode,
                                             ...(isTruncated ? [{
                                                 type: 'div',
@@ -580,7 +695,7 @@ export async function generateQuote({ text, username, avatar, color }) {
     );
 
     // ================================
-    // STEP 2: Render SVG to PNG using Sharp (FAST)
+    // RENDER SVG TO PNG using Sharp
     // ================================
     const pngBuffer = await sharp(Buffer.from(svg))
         .png({
@@ -591,9 +706,4 @@ export async function generateQuote({ text, username, avatar, color }) {
 
     return pngBuffer;
 }
-
-
-
-
-
 
