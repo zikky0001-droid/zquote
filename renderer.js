@@ -1,13 +1,13 @@
 /**
- * Quote Renderer - SVG to PNG
- * STICKER-OPTIMIZED: Large bubble, black background, neon glow
+ * Quote Renderer - SVG to PNG (FAST - Using Sharp)
+ * Enlarged size, Gold bubble, Blue username, White text
  */
 
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import satori from 'satori';
-import { Resvg } from '@resvg/resvg-js';
+import sharp from 'sharp';
 import twemoji from 'twemoji';
 import emojiRegex from 'emoji-regex';
 import axios from 'axios';
@@ -26,30 +26,33 @@ if (!fs.existsSync(EMOJI_CACHE_DIR)) {
 }
 
 // ================================
-// CONSTANTS (FAST + EXTRA LARGE - 120% INCREASE)
+// CONSTANTS (ENLARGED)
 // ================================
-const IMAGE_WIDTH = 2420;           // 1100 × 2.2 = 2420
-const AVATAR_SIZE = 308;            // 140 × 2.2 = 308
-const USERNAME_FONT_SIZE = 88;      // 40 × 2.2 = 88
-const MESSAGE_FONT_SIZE = 114;      // 52 × 2.2 = 114
-const BUBBLE_PADDING_TOP = 70;      // 32 × 2.2 = 70
-const BUBBLE_PADDING_BOTTOM = 70;   // 32 × 2.2 = 70
-const BUBBLE_PADDING_LEFT = 88;     // 40 × 2.2 = 88
-const BUBBLE_PADDING_RIGHT = 88;    // 40 × 2.2 = 88
-const BUBBLE_RADIUS = 114;          // 52 × 2.2 = 114
-const MAX_BUBBLE_WIDTH = 2112;      // 960 × 2.2 = 2112
-const MAX_HEIGHT = 2860;            // 1300 × 2.2 = 2860
-const MIN_HEIGHT = 616;             // 280 × 2.2 = 616
+const IMAGE_WIDTH = 1800;           // Enlarged
+const AVATAR_SIZE = 220;            // Enlarged
+const USERNAME_FONT_SIZE = 64;      // Enlarged
+const MESSAGE_FONT_SIZE = 82;       // Enlarged
+const BUBBLE_PADDING_TOP = 48;      
+const BUBBLE_PADDING_BOTTOM = 48;
+const BUBBLE_PADDING_LEFT = 56;
+const BUBBLE_PADDING_RIGHT = 56;
+const BUBBLE_RADIUS = 72;
+const MAX_BUBBLE_WIDTH = 1500;      // Enlarged
+const MAX_HEIGHT = 2000;
+const MIN_HEIGHT = 400;
 const MAX_CHARS = 1000;
-const CHARS_PER_LINE = 28;          // Keep same (or 24 for larger text)
+const CHARS_PER_LINE = 28;
 
-// Colors (Dark theme, no heavy glow)
+// ================================
+// COLORS (Gold Theme)
+// ================================
 const COLORS = {
-    background: '#000000',
-    bubble: '#1F1438',
-    username: '#FFB74D',
-    text: '#FFFFFF',
-    accent: '#A855F7',
+    background: '#0A0A0F',           // Dark background
+    bubble: '#D4A017',               // Beautiful Gold
+    bubbleDark: '#B8860B',           // Darker gold for depth
+    username: '#4FC3F7',             // Light Blue
+    text: '#FFFFFF',                 // White
+    shadow: 'rgba(212, 160, 23, 0.3)', // Gold shadow
 };
 
 // ================================
@@ -373,13 +376,13 @@ function calculateHeight(text, username) {
     
     const estimatedLines = Math.max(1, Math.ceil(lines * 1.1));
     
-    const usernameHeight = USERNAME_FONT_SIZE + 18;
+    const usernameHeight = USERNAME_FONT_SIZE + 20;
     const messageHeight = estimatedLines * lineHeight;
     const paddingTotal = BUBBLE_PADDING_TOP + BUBBLE_PADDING_BOTTOM + 10;
     const bubbleHeight = usernameHeight + messageHeight + paddingTotal;
     
     const finalBubbleHeight = Math.min(Math.max(bubbleHeight, MIN_HEIGHT), MAX_HEIGHT);
-    const canvasHeight = finalBubbleHeight + 80; // Extra padding for sticker feel
+    const canvasHeight = finalBubbleHeight + 80;
     
     return {
         bubbleHeight: finalBubbleHeight,
@@ -397,7 +400,7 @@ function truncateText(text, maxLength = MAX_CHARS) {
 }
 
 // ================================
-// GENERATE QUOTE (STICKER-OPTIMIZED)
+// GENERATE QUOTE (Using Sharp for fast rendering)
 // ================================
 export async function generateQuote({ text, username, avatar, color }) {
     const finalText = truncateText(text);
@@ -407,7 +410,7 @@ export async function generateQuote({ text, username, avatar, color }) {
     const messageNode = await buildMessageNode(finalText, MESSAGE_FONT_SIZE);
 
     // ================================
-    // GENERATE SVG
+    // STEP 1: Generate SVG using Satori (Fast)
     // ================================
     const svg = await satori(
         {
@@ -415,33 +418,29 @@ export async function generateQuote({ text, username, avatar, color }) {
             props: {
                 style: {
                     display: 'flex',
-                    alignItems: 'center',      // ← Centered vertically
-                    justifyContent: 'center',  // ← Centered horizontally
-                    padding: '40px',           // ← More padding around edges
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    padding: '50px',
                     background: COLORS.background,
                     fontFamily: '"Roboto", "Noto Sans", "Noto Color Emoji", sans-serif',
                     width: IMAGE_WIDTH,
                     height: canvasHeight,
                 },
                 children: [
-                    // ================================
-                    // GLOW EFFECT (Box shadow replacement)
-                    // ================================
                     {
                         type: 'div',
                         props: {
                             style: {
                                 display: 'flex',
                                 alignItems: 'flex-end',
-                                gap: '24px',
-                                padding: '20px',
+                                gap: '28px',
+                                padding: '24px',
                                 borderRadius: BUBBLE_RADIUS + 8,
-                                boxShadow: '0 0 60px rgba(138, 43, 226, 0.4)',
-                                background: 'rgba(138, 43, 226, 0.05)',
+                                background: 'rgba(212, 160, 23, 0.08)',
                             },
                             children: [
                                 // ================================
-                                // AVATAR (Larger)
+                                // AVATAR (Enlarged)
                                 // ================================
                                 {
                                     type: 'div',
@@ -453,8 +452,8 @@ export async function generateQuote({ text, username, avatar, color }) {
                                             borderRadius: '50%',
                                             overflow: 'hidden',
                                             flexShrink: 0,
-                                            border: '4px solid #A855F7',
-                                            boxShadow: '0 0 30px rgba(138, 43, 226, 0.5)',
+                                            border: `6px solid ${COLORS.bubble}`,
+                                            boxShadow: `0 0 40px ${COLORS.shadow}`,
                                         },
                                         children: avatar && avatar !== 'default' ? [
                                             {
@@ -479,8 +478,8 @@ export async function generateQuote({ text, username, avatar, color }) {
                                                         justifyContent: 'center',
                                                         width: '100%',
                                                         height: '100%',
-                                                        background: '#3A3A3E',
-                                                        fontSize: '52px',
+                                                        background: '#2A2A3A',
+                                                        fontSize: '72px',
                                                         fontWeight: 'bold',
                                                         color: COLORS.text,
                                                         fontFamily: '"Noto Sans", "Roboto", sans-serif',
@@ -492,7 +491,7 @@ export async function generateQuote({ text, username, avatar, color }) {
                                     },
                                 },
                                 // ================================
-                                // BUBBLE (Neon Purple)
+                                // BUBBLE (Gold)
                                 // ================================
                                 {
                                     type: 'div',
@@ -508,35 +507,33 @@ export async function generateQuote({ text, username, avatar, color }) {
                                             borderRadius: BUBBLE_RADIUS,
                                             position: 'relative',
                                             maxWidth: MAX_BUBBLE_WIDTH,
-                                            boxShadow: '0 0 40px rgba(138, 43, 226, 0.3), inset 0 0 60px rgba(138, 43, 226, 0.05)',
+                                            boxShadow: `0 0 60px ${COLORS.shadow}`,
                                             alignSelf: 'center',
                                         },
                                         children: [
-                                            // ================================
-                                            // TAIL (Neon Purple)
-                                            // ================================
+                                            // Tail
                                             {
                                                 type: 'svg',
                                                 props: {
-                                                    width: 28,
-                                                    height: 28,
+                                                    width: 32,
+                                                    height: 32,
                                                     style: {
                                                         position: 'absolute',
-                                                        left: -14,
-                                                        bottom: 24,
+                                                        left: -16,
+                                                        bottom: 28,
                                                     },
                                                     children: [
                                                         {
                                                             type: 'path',
                                                             props: {
-                                                                d: "M22 0 C13 2 6 9 2 22 C12 18 18 14 22 9 Z",
+                                                                d: "M26 0 C15 3 7 11 2 26 C12 21 20 17 26 11 Z",
                                                                 fill: COLORS.bubble,
                                                             },
                                                         },
                                                     ],
                                                 },
                                             },
-                                            // Username
+                                            // Username (Blue)
                                             {
                                                 type: 'div',
                                                 props: {
@@ -545,23 +542,22 @@ export async function generateQuote({ text, username, avatar, color }) {
                                                         fontSize: USERNAME_FONT_SIZE,
                                                         fontWeight: 700,
                                                         color: COLORS.username,
-                                                        marginBottom: '12px',
+                                                        marginBottom: '16px',
                                                         fontFamily: '"Noto Sans", "Roboto", sans-serif',
                                                     },
                                                     children: username,
                                                 },
                                             },
-                                            // Message
+                                            // Message (White)
                                             messageNode,
-                                            // Truncation notice
                                             ...(isTruncated ? [{
                                                 type: 'div',
                                                 props: {
                                                     style: {
                                                         display: 'flex',
-                                                        fontSize: 18,
-                                                        color: '#666666',
-                                                        marginTop: 8,
+                                                        fontSize: 24,
+                                                        color: 'rgba(255,255,255,0.5)',
+                                                        marginTop: 10,
                                                         fontFamily: '"Roboto", "Noto Sans", sans-serif',
                                                     },
                                                     children: '... (truncated)',
@@ -584,25 +580,20 @@ export async function generateQuote({ text, username, avatar, color }) {
     );
 
     // ================================
-    // RENDER SVG TO PNG
+    // STEP 2: Render SVG to PNG using Sharp (FAST)
     // ================================
-    const resvg = new Resvg(svg, {
-        fitTo: {
-            mode: 'width',
-            value: IMAGE_WIDTH,
-        },
-        font: {
-            loadSystemFonts: false,
-            fontFiles: (() => {
-                if (!fs.existsSync(FONTS_DIR)) return [];
-                return fs.readdirSync(FONTS_DIR)
-                    .filter(file => file.endsWith('.ttf') || file.endsWith('.otf'))
-                    .map(file => path.join(FONTS_DIR, file));
-            })(),
-        },
-    });
+    const pngBuffer = await sharp(Buffer.from(svg))
+        .png({
+            quality: 90,
+            compressionLevel: 6,
+        })
+        .toBuffer();
 
-    const pngData = resvg.render();
-    return pngData.asPng();
+    return pngBuffer;
 }
+
+
+
+
+
 
