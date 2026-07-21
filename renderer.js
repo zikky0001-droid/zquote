@@ -93,10 +93,10 @@ function loadSpecificFonts() {
             try {
                 const data = fs.readFileSync(filepath);
                 let name = file.replace(/\.(ttf|otf|ttc)$/, '');
-                let weight = 750;
+                let weight = 900;
                 let style = 'normal';
 
-                if (name.includes('Bold')) weight = 750;
+                if (name.includes('Bold')) weight = 700;
                 if (name.includes('Italic')) style = 'italic';
 
                 if (file.includes('NotoSans')) name = 'Noto Sans';
@@ -126,12 +126,12 @@ function loadSpecificFonts() {
             const filepath = path.join(FONTS_DIR, file);
             const data = fs.readFileSync(filepath);
             let name = 'Roboto';
-            let weight = 750;
+            let weight = 900;
             let style = 'normal';
 
             if (file.includes('Black')) weight = 900;
             else if (file.includes('ExtraBold')) weight = 800;
-            else if (file.includes('Bold')) weight = 750;
+            else if (file.includes('Bold')) weight = 700;
             else if (file.includes('SemiBold')) weight = 600;
             else if (file.includes('Medium')) weight = 500;
             else if (file.includes('Light')) weight = 300;
@@ -254,7 +254,7 @@ async function buildMessageNode(text, fontSize) {
                     display: 'flex',
                     fontSize: fontSize,
                     color: COLORS.text,
-                    fontWeight: 750,
+                    fontWeight: 900,
                     lineHeight: 1.35,
                     fontFamily: '"Roboto", "Noto Sans", sans-serif',
                     flexWrap: 'wrap',
@@ -280,7 +280,7 @@ async function buildMessageNode(text, fontSize) {
                             display: 'flex',
                             fontSize: fontSize,
                             color: COLORS.text,
-                            fontWeight: 750,
+                            fontWeight: 900,
                             fontFamily: '"Roboto", "Noto Sans", sans-serif',
                         },
                         children: textBuffer,
@@ -312,7 +312,7 @@ async function buildMessageNode(text, fontSize) {
                             display: 'flex',
                             fontSize: fontSize,
                             color: COLORS.text,
-                            fontWeight: 750,
+                            fontWeight: 900,
                             fontFamily: '"Roboto", "Noto Sans", sans-serif',
                         },
                         children: part.value,
@@ -330,7 +330,7 @@ async function buildMessageNode(text, fontSize) {
                     display: 'flex',
                     fontSize: fontSize,
                     color: COLORS.text,
-                    fontWeight: 750,
+                    fontWeight: 900,
                     fontFamily: '"Roboto", "Noto Sans", sans-serif',
                 },
                 children: textBuffer,
@@ -349,7 +349,7 @@ async function buildMessageNode(text, fontSize) {
                 gap: '4px',
                 fontSize: fontSize,
                 color: COLORS.text,
-                fontWeight: 750,
+                fontWeight: 900,
                 lineHeight: 1.35,
                 fontFamily: '"Roboto", "Noto Sans", sans-serif',
                 maxWidth: MAX_BUBBLE_WIDTH - BUBBLE_PADDING_LEFT - BUBBLE_PADDING_RIGHT,
@@ -483,7 +483,7 @@ export async function generateQuote({ text, username, avatar, color }) {
                                                 props: {
                                                     style: {
                                                         display: 'flex',
-                                                        alignIte<: 'center',
+                                                        alignItems: 'center',
                                                         justifyContent: 'center',
                                                         width: '100%',
                                                         height: '100%',
