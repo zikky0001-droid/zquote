@@ -1,6 +1,7 @@
 /**
  * Quote Generation Route
  * POST /api/quote
+ * WITH TIMER & UPTIME
  */
 
 import express from 'express';
@@ -32,7 +33,19 @@ function formatExpiryTime(expiresAt) {
     return { utc, local };
 }
 
+// ================================
+// FORMAT UPTIME (Minutes & Seconds)
+// ================================
+function formatUptime(seconds) {
+    const mins = Math.floor(seconds / 60);
+    const secs = Math.floor(seconds % 60);
+    return `${mins}m ${secs}s`;
+}
+
 router.post('/', async (req, res) => {
+    // ✅ Start timer
+    const startTime = Date.now();
+    
     try {
         let { text, username, avatar } = req.body;
 
@@ -82,8 +95,16 @@ router.post('/', async (req, res) => {
         const baseUrl = process.env.BASE_URL || `http://localhost:${process.env.PORT || 3000}`;
         const imageUrl = `${baseUrl}/images/${filename}`;
 
+        // ✅ Calculate time taken
+        const endTime = Date.now();
+        const timeTaken = (endTime - startTime) / 1000;
+
+        // ✅ Get uptime
+        const uptimeSeconds = process.uptime();
+        const uptimeFormatted = formatUptime(uptimeSeconds);
+
         // ================================
-        // PRETTY PRINT JSON RESPONSE
+        // RESPONSE WITH TIMER & UPTIME
         // ================================
         const response = {
             success: true,
@@ -104,12 +125,18 @@ router.post('/', async (req, res) => {
                 api: {
                     version: '1.0.0',
                     timestamp: getTimeInfo(),
-                    endpoint: '/api/quote'
+                    endpoint: '/api/quote',
+                    // ✅ NEW: Timer & Uptime
+                    performance: {
+                        timeTaken: `${timeTaken.toFixed(2)}s`,
+                        uptime: uptimeFormatted,
+                        uptimeSeconds: uptimeSeconds
+                    }
                 }
             }
         };
 
-        // ✅ PRETTY PRINT: 2-space indentation
+        // Pretty print JSON
         res.setHeader('Content-Type', 'application/json');
         res.send(JSON.stringify(response, null, 2));
 
@@ -138,7 +165,5 @@ function getUsernameColor(username) {
 }
 
 export default router;
-
-
 
 
