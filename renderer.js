@@ -553,7 +553,7 @@ export async function generateQuote({ text, username, avatar, color }) {
                                                     style: {
                                                         display: 'flex',
                                                         fontSize: USERNAME_FONT_SIZE,
-                                                        fontWeight: 700,
+                                                        fontWeight: 900,
                                                         color: COLORS.username,
                                                         marginBottom: '8px',
                                                         fontFamily: '"Noto Sans", "Roboto", sans-serif',
