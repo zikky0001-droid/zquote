@@ -57,6 +57,16 @@ const THEMES = {
         border: '#8B5CF6',
         shadow: 'rgba(108, 43, 217, 0.3)',
     },
+    // --- White Bubble + Blue Glow ---
+    whiteBlue: {
+        bubble: '#FFFFFF',
+        bubbleDark: '#F0F0F0',
+        username: '#1A237E',
+        text: '#1A1A2E',
+        glow: 'rgba(37, 99, 235, 0.5)',
+        border: '#3B82F6',
+        shadow: 'rgba(37, 99, 235, 0.25)',
+    },
     // --- Yellow Theme ---
     yellow: {
         bubble: '#F59E0B',
@@ -133,7 +143,7 @@ const THEMES = {
 // 🔧 SELECT YOUR THEME HERE
 // ================================
 // Options: 'purple', 'yellow', 'red', 'blue', 'green', 'orange', 'pink', 'gold'
-const SELECTED_THEME = 'purple';  // ← Change this to switch themes
+const SELECTED_THEME = 'whiteBlue';  // ← Change this to switch themes
 
 // ================================
 // 🎨 GLOW SETTINGS
