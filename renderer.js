@@ -26,31 +26,30 @@ if (!fs.existsSync(EMOJI_CACHE_DIR)) {
 }
 
 // ================================
-// CONSTANTS (STICKER-OPTIMIZED)
+// CONSTANTS (FAST + EXTRA LARGE - 120% INCREASE)
 // ================================
-const IMAGE_WIDTH = 1200;
-const AVATAR_SIZE = 145;            // ← Bigger avatar
-const USERNAME_FONT_SIZE = 42;      // ← Bigger username
-const MESSAGE_FONT_SIZE = 56;       // ← Bigger message
-const BUBBLE_PADDING_TOP = 40;      // ← More padding
-const BUBBLE_PADDING_BOTTOM = 40;
-const BUBBLE_PADDING_LEFT = 48;
-const BUBBLE_PADDING_RIGHT = 48;
-const BUBBLE_RADIUS = 56;           // ← More rounded
-const MAX_BUBBLE_WIDTH = 1040;      // ← Much wider bubble
-const MAX_HEIGHT = 1400;
-const MIN_HEIGHT = 300;
+const IMAGE_WIDTH = 2420;           // 1100 × 2.2 = 2420
+const AVATAR_SIZE = 308;            // 140 × 2.2 = 308
+const USERNAME_FONT_SIZE = 88;      // 40 × 2.2 = 88
+const MESSAGE_FONT_SIZE = 114;      // 52 × 2.2 = 114
+const BUBBLE_PADDING_TOP = 70;      // 32 × 2.2 = 70
+const BUBBLE_PADDING_BOTTOM = 70;   // 32 × 2.2 = 70
+const BUBBLE_PADDING_LEFT = 88;     // 40 × 2.2 = 88
+const BUBBLE_PADDING_RIGHT = 88;    // 40 × 2.2 = 88
+const BUBBLE_RADIUS = 114;          // 52 × 2.2 = 114
+const MAX_BUBBLE_WIDTH = 2112;      // 960 × 2.2 = 2112
+const MAX_HEIGHT = 2860;            // 1300 × 2.2 = 2860
+const MIN_HEIGHT = 616;             // 280 × 2.2 = 616
 const MAX_CHARS = 1000;
-const CHARS_PER_LINE = 26;
+const CHARS_PER_LINE = 28;          // Keep same (or 24 for larger text)
 
-// Colors (Neon Purple Theme)
+// Colors (Dark theme, no heavy glow)
 const COLORS = {
-    background: '#000000',           // Black background
-    bubble: '#1F1438',               // Dark purple
-    bubbleGlow: 'rgba(138, 43, 226, 0.3)', // Neon glow
-    username: '#FFB74D',             // Orange/Gold
-    text: '#FFFFFF',                 // White text
-    accent: '#A855F7',               // Neon purple accent
+    background: '#000000',
+    bubble: '#1F1438',
+    username: '#FFB74D',
+    text: '#FFFFFF',
+    accent: '#A855F7',
 };
 
 // ================================
